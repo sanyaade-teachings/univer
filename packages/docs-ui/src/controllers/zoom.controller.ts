@@ -24,10 +24,10 @@ import {
     toDisposable,
 } from '@univerjs/core';
 import type { IDocObjectParam } from '@univerjs/docs';
-import { DocSkeletonManagerService, getDocObject, SetDocZoomRatioCommand, SetDocZoomRatioOperation, TextSelectionManagerService, VIEWPORT_KEY } from '@univerjs/docs';
+import { DocSkeletonManagerService, getDocObject, SetDocZoomRatioCommand, SetDocZoomRatioOperation, TextSelectionManagerService } from '@univerjs/docs';
 import type { IWheelEvent } from '@univerjs/engine-render';
 import { IRenderManagerService } from '@univerjs/engine-render';
-import { IEditorService } from '@univerjs/ui';
+import { IEditorService, VIEWPORT_KEY } from '@univerjs/ui';
 import { Inject } from '@wendellhu/redi';
 
 interface ISetDocMutationParams {

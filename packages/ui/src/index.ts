@@ -86,3 +86,7 @@ export { SetEditorResizeOperation } from './commands/operations/editor/set-edito
 export { RangeSelector } from './components/range-selector/RangeSelector';
 
 export { IRangeSelectorService } from './services/range-selector/range-selector.service';
+
+export { DocCanvasView } from './views/renders/doc-canvas-view';
+
+export { VIEWPORT_KEY, DOCS_VIEW_KEY, DOCS_COMPONENT_MAIN_LAYER_INDEX, DOCS_COMPONENT_HEADER_LAYER_INDEX, DOCS_COMPONENT_DEFAULT_Z_INDEX, NORMAL_TEXT_SELECTION_PLUGIN_NAME } from './views/renders/docs-view-key';

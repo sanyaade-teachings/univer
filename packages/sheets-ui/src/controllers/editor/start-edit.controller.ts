@@ -36,12 +36,11 @@ import {
 } from '@univerjs/core';
 import type { IRichTextEditingMutationParams } from '@univerjs/docs';
 import {
-    DOCS_COMPONENT_MAIN_LAYER_INDEX,
     DocSkeletonManagerService,
     DocViewModelManagerService,
     RichTextEditingMutation,
     TextSelectionManagerService,
-    VIEWPORT_KEY,
+
 } from '@univerjs/docs';
 import type { DocumentSkeleton, IDocumentLayoutObject, IEditorInputConfig, Scene } from '@univerjs/engine-render';
 import {
@@ -53,7 +52,7 @@ import {
     Rect,
     ScrollBar,
 } from '@univerjs/engine-render';
-import { IEditorService, KeyCode, SetEditorResizeOperation } from '@univerjs/ui';
+import { DOCS_COMPONENT_MAIN_LAYER_INDEX, IEditorService, KeyCode, SetEditorResizeOperation, VIEWPORT_KEY } from '@univerjs/ui';
 import { Inject } from '@wendellhu/redi';
 
 import { getEditorObject } from '../../basics/editor/get-editor-object';

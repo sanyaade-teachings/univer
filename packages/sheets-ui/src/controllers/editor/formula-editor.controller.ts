@@ -39,7 +39,6 @@ import {
     DocViewModelManagerService,
     RichTextEditingMutation,
     TextSelectionManagerService,
-    VIEWPORT_KEY,
 } from '@univerjs/docs';
 import type { RenderComponentType } from '@univerjs/engine-render';
 import { DeviceInputEventType, IRenderManagerService, ScrollBar } from '@univerjs/engine-render';
@@ -48,7 +47,7 @@ import { MoveRangeMutation, SetRangeValuesMutation } from '@univerjs/sheets';
 import { Inject } from '@wendellhu/redi';
 import { takeUntil } from 'rxjs';
 
-import { SetEditorResizeOperation } from '@univerjs/ui';
+import { SetEditorResizeOperation, VIEWPORT_KEY } from '@univerjs/ui';
 import { getEditorObject } from '../../basics/editor/get-editor-object';
 import { IFormulaEditorManagerService } from '../../services/editor/formula-editor-manager.service';
 import type { IEditorBridgeServiceParam } from '../../services/editor-bridge.service';

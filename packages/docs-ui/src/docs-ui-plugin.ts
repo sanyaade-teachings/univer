@@ -50,7 +50,6 @@ import { DocClipboardService, IDocClipboardService } from './services/clipboard/
 import { DocClipboardController } from './controllers/clipboard.controller';
 import { DocEditorBridgeController } from './controllers/doc-editor-bridge.controller';
 import { DocRenderController } from './controllers/doc-render.controller';
-import { DocCanvasView } from './views/doc-canvas-view';
 import { FloatingObjectController } from './controllers/floating-object.controller';
 import { PageRenderController } from './controllers/page-render.controller';
 import { ZoomController } from './controllers/zoom.controller';
@@ -128,9 +127,6 @@ export class UniverDocsUIPlugin extends Plugin {
                     useClass: DocClipboardService,
                 },
             ],
-
-            // Render views
-            [DocCanvasView],
         ];
 
         dependencies.forEach((d) => {

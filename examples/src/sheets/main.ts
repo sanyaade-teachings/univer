@@ -56,7 +56,7 @@ univer.registerPlugin(UniverUIPlugin, {
     footer: true,
 });
 
-univer.registerPlugin(UniverDocsUIPlugin);
+// univer.registerPlugin(UniverDocsUIPlugin);
 
 univer.registerPlugin(UniverSheetsPlugin, {
     notExecuteFormula: true,

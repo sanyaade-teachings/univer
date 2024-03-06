@@ -15,9 +15,9 @@
  */
 
 import { IUniverInstanceService, LifecycleStages, OnLifecycle, RxDisposable } from '@univerjs/core';
-import { DocSkeletonManagerService, getDocObject, TextSelectionManagerService, VIEWPORT_KEY } from '@univerjs/docs';
+import { DocSkeletonManagerService, getDocObject, TextSelectionManagerService } from '@univerjs/docs';
 import { getAnchorBounding, IRenderManagerService, NodePositionConvertToCursor } from '@univerjs/engine-render';
-import { IEditorService } from '@univerjs/ui';
+import { IEditorService, VIEWPORT_KEY } from '@univerjs/ui';
 import { Inject } from '@wendellhu/redi';
 import { takeUntil } from 'rxjs';
 
