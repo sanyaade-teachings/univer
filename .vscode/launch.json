@@ -42,11 +42,14 @@
             "request": "launch",
             "type": "msedge",
             "url": "http://localhost:3002",
-            "webRoot": "${workspaceFolder}/examples/sheets/local/",
+            "webRoot": "${workspaceFolder}/examples/sheets/",
             "presentation": {
                 "group": "0_example",
                 "order": 4
-            }
+            },
+            "skipFiles": [
+                "${workspaceFolder}/node_modules/**"
+            ]
         },
         {
             "name": "Launch Slide (Chrome)",

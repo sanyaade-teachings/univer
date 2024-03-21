@@ -35,6 +35,7 @@ import { IRenderManagerService } from '@univerjs/engine-render';
 import { SHEET_VIEW_KEY } from '@univerjs/sheets-ui';
 import { FDocument } from './docs/f-document';
 import { FWorkbook } from './sheets/f-workbook';
+import { FSkeleton } from './sheets/f-skeleton';
 
 export class FUniver {
     /**
@@ -54,13 +55,18 @@ export class FUniver {
     static BorderStyle = BorderStyleTypes;
     static WrapStrategy = WrapStrategy;
 
+    declare _fSkeleton: FSkeleton;
     constructor(
         @Inject(Injector) private readonly _injector: Injector,
         @IUniverInstanceService private readonly _univerInstanceService: IUniverInstanceService,
         @ICommandService private readonly _commandService: ICommandService,
         @ISocketService private readonly _ws: ISocketService,
         @IRenderManagerService private readonly _renderManagerService: IRenderManagerService
-    ) {}
+    ) {
+        if (this._injector) {
+            this._fSkeleton = this._injector.createInstance(FSkeleton);
+        }
+    }
 
     /**
      * Create a new spreadsheet and get the API handler of that spreadsheet.
@@ -121,6 +127,10 @@ export class FUniver {
         }
 
         return this._injector.createInstance(FWorkbook, workbook);
+    }
+
+    getSkeleton(): FSkeleton | null {
+        return this._fSkeleton;
     }
 
     /**

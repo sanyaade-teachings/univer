@@ -30,6 +30,7 @@ import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt';
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui';
 import { UniverSheetsZenEditorPlugin } from '@univerjs/sheets-zen-editor';
 import { UniverUIPlugin } from '@univerjs/ui';
+import { FUniver } from '@univerjs/facade';
 
 import { DEFAULT_WORKBOOK_DATA_DEMO } from '../data';
 import { DebuggerPlugin } from '../plugins/debugger';
@@ -80,7 +81,17 @@ univer.registerPlugin(UniverFindReplacePlugin);
 univer.registerPlugin(UniverSheetsFindReplacePlugin);
 
 // create univer sheet instance
-univer.createUniverSheet(DEFAULT_WORKBOOK_DATA_DEMO);
+const workbook = univer.createUniverSheet(DEFAULT_WORKBOOK_DATA_DEMO);
+
+window.univer = univer;
+// @ts-expect-error
+window.FUniver = FUniver;
+// @ts-expect-error
+window.univerAPI = FUniver.newAPI(univer);
+// @ts-expect-error
+window.workbook = workbook;
+
+// console.log('workbook', workbook);
 
 declare global {
     interface Window {

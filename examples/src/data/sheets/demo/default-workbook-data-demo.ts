@@ -13927,8 +13927,8 @@ export const DEFAULT_WORKBOOK_DATA_DEMO: IWorkbookData = {
             },
             scrollTop: 0,
             scrollLeft: 0,
-            defaultColumnWidth: 73,
-            defaultRowHeight: 19,
+            defaultColumnWidth: 50,
+            defaultRowHeight: 50,
             mergeData: [],
             rowData: {
                 14: {
@@ -13944,11 +13944,11 @@ export const DEFAULT_WORKBOOK_DATA_DEMO: IWorkbookData = {
             columnData: {},
             showGridlines: 1,
             rowHeader: {
-                width: 46,
+                width: 50,
                 hidden: 0,
             },
             columnHeader: {
-                height: 20,
+                height: 50,
                 hidden: 0,
             },
             selections: ['A1'],
