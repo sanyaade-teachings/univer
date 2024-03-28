@@ -36,7 +36,7 @@ import { RefRangeController } from './controllers/cf.ref-range.controller';
 import { SetConditionalRuleMutation } from './commands/mutations/set-conditional-rule.mutation';
 import { ConditionalFormattingCopyPasteController } from './controllers/cf.copy-paste.controller';
 import { ConditionalFormattingAutoFillController } from './controllers/cf.auto-fill.controller';
-import { ConditionalFormattingMenuController } from './controllers/cf.menu.controller';
+// import { ConditionalFormattingMenuController } from './controllers/cf.menu.controller';
 import { ConditionalFormattingI18nController } from './controllers/cf.i18n.controller';
 
 import { ClearRangeCfCommand } from './commands/commands/clear-range-cf.command';
@@ -93,7 +93,7 @@ export class SheetsConditionalFormattingPlugin extends Plugin {
         this._injector.add([RefRangeController]);
         this._injector.add([ConditionalFormattingCopyPasteController]);
         this._injector.add([ConditionalFormattingAutoFillController]);
-        this._injector.add([ConditionalFormattingMenuController]);
+        // this._injector.add([ConditionalFormattingMenuController]);
         this._injector.add([ConditionalFormattingI18nController]);
         this._injector.add([ConditionalFormattingEditorController]);
         this._injector.add([ConditionalFormattingClearController]);
