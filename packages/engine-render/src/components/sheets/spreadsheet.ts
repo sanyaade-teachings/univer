@@ -79,6 +79,7 @@ export class Spreadsheet extends SheetComponent {
 
         if (this._allowCache) {
             this._cacheCanvas = new Canvas();
+            this.displayCache();
 
             this.onIsAddedToParentObserver.add((parent) => {
                 (parent as Scene)?.getEngine()?.onTransformChangeObservable.add(() => {
@@ -92,6 +93,24 @@ export class Spreadsheet extends SheetComponent {
         this._initialDefaultExtension();
 
         this.makeDirty(true);
+    }
+
+    displayCache() {
+        const globalThis = window as any;
+        if (!globalThis.cacheSet) {
+            globalThis.cacheSet = new Set();
+        }
+        globalThis.cacheSet.add(this._cacheCanvas);
+        this._cacheCanvas.getCanvasEle().style.zIndex = '100';
+        this._cacheCanvas.getCanvasEle().style.transform = 'scale(0.5)';
+        this._cacheCanvas.getCanvasEle().style.transformOrigin = 'bottom right';
+        this._cacheCanvas.getCanvasEle().style.position = 'fixed';
+        this._cacheCanvas.getCanvasEle().style.bottom = '-200';
+        this._cacheCanvas.getCanvasEle().style.right = '-200';
+        this._cacheCanvas.getCanvasEle().style.background = 'pink';
+        this._cacheCanvas.getCanvasEle().style.pointerEvents = 'none'; // 禁用事件响应
+        this._cacheCanvas.getCanvasEle().style.border = '1px solid black'; // 设置边框样式
+        document.body.appendChild(this._cacheCanvas.getCanvasEle());
     }
 
     get backgroundExtension() {
@@ -336,7 +355,10 @@ export class Spreadsheet extends SheetComponent {
         }
         const { width, height } = parentSize;
         this._cacheCanvas.setSize(width, height);
-        this.makeDirty(true);
+        // this.makeDirty(true);
+        // resize 后要整个重新绘制
+        // render 根据 _forceDirty 才清空 cacheCanvas
+        this.makeForceDirty(true);
     }
 
     protected _applyCache(
