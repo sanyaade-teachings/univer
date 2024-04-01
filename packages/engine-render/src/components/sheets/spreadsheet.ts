@@ -51,6 +51,8 @@ export class Spreadsheet extends SheetComponent {
 
     private _cacheCanvas!: Canvas;
     private _cacheCanvasTop!: Canvas;
+    private _cacheCanvasLeft!: Canvas;
+    private _cacheCanvasLeftTop!: Canvas;
 
     private _refreshIncrementalState = false;
 
@@ -81,6 +83,8 @@ export class Spreadsheet extends SheetComponent {
         if (this._allowCache) {
             this._cacheCanvas = new Canvas();
             this._cacheCanvasTop = new Canvas();
+            this._cacheCanvasLeftTop = new Canvas();
+            this._cacheCanvasLeft = new Canvas();
 
             this.displayCache();
 
@@ -107,6 +111,8 @@ export class Spreadsheet extends SheetComponent {
         }
         globalThis.cacheSet.add(this._cacheCanvas);
         globalThis.cacheSet.add(this._cacheCanvasTop);
+        globalThis.cacheSet.add(this._cacheCanvasLeft);
+        globalThis.cacheSet.add(this._cacheCanvasLeftTop);
         const showCache = (cacheCanvas: typeof this._cacheCanvas) => {
             cacheCanvas.getCanvasEle().style.zIndex = '100';
             cacheCanvas.getCanvasEle().style.transform = 'scale(0.5)';
@@ -119,7 +125,7 @@ export class Spreadsheet extends SheetComponent {
             cacheCanvas.getCanvasEle().style.border = '1px solid black'; // 设置边框样式
             document.body.appendChild(cacheCanvas.getCanvasEle());
         }
-        showCache(this._cacheCanvasTop);
+        showCache(this._cacheCanvasLeftTop);
     }
 
     get backgroundExtension() {
@@ -225,8 +231,14 @@ export class Spreadsheet extends SheetComponent {
         };
     }
 
+
+    isForceDirty(): boolean {
+        return this._forceDirty;
+    }
+
     makeForceDirty(state = true) {
         this.makeDirty(state);
+        console.log('!!!_forceDirty', state);
         this._forceDirty = state;
     }
 
@@ -275,6 +287,260 @@ export class Spreadsheet extends SheetComponent {
 
     }
 
+    renderByViewport(mainCtx: UniverRenderingContext, bounds: IViewportBound, spreadsheetSkeleton: SpreadsheetSkeleton) {
+        const { viewBound, diffBounds, diffX, diffY, viewPortPosition, viewPortKey } = bounds;
+        const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
+        const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
+        mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
+        if (viewPortKey === 'viewMain') {
+            const cacheCtx = this._cacheCanvas.getContext();
+            cacheCtx.save();
+            const { left, top, right, bottom } = viewPortPosition;
+
+            const dw = right - left + rowHeaderWidth;
+
+            const dh = bottom - top + columnHeaderHeight;
+
+            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isForceDirty()) {
+                if (this.isDirty() || this.isForceDirty()) {
+                    this._cacheCanvas.clear();
+                    cacheCtx.setTransform(mainCtx.getTransform());
+                    this._draw(cacheCtx, bounds);
+                    // this._forceDirty = false;
+                }
+                this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
+            } else {
+                // 一直 true 的话，会有残影出现
+                // if (this.isViewPortDirty(viewPortKey)) {
+                if (this.isViewPortDirty(viewPortKey)) {
+                    console.time('viewMainscroll');
+
+                    cacheCtx.save();
+                    cacheCtx.setTransform(1, 0, 0, 1, 0, 0);
+                    cacheCtx.globalCompositeOperation = 'copy';
+                    cacheCtx.drawImage(this._cacheCanvas.getCanvasEle(), diffX * scaleX, diffY * scaleY);
+                    // const imageData = cacheCtx.getImageData(0, 0, this._cacheCanvas.getCanvasEle().width, this._cacheCanvas.getCanvasEle().height);
+                    // cacheCtx.clearRect(0, 0, this._cacheCanvas.getCanvasEle().width, this._cacheCanvas.getCanvasEle().height);
+                    // cacheCtx.putImageData(imageData, diffX * scaleX, diffY * scaleY);
+                    cacheCtx.restore();
+
+                    this._refreshIncrementalState = true;
+                    cacheCtx.setTransform(mainCtx.getTransform());
+
+                    for (const diffBound of diffBounds) {
+                        const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
+                        cacheCtx.save();
+                        cacheCtx.beginPath();
+                        const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        cacheCtx.rectByPrecision(x, y, w, h);
+                        // cacheCtx.fillStyle = 'pink';
+                        // console.log('view', viewBound, '!!!rect', x, y, w, h, rowHeaderWidth);
+
+                        cacheCtx.clip();
+                        // cacheCtx.fill();
+                        this._draw(cacheCtx, {
+                            viewBound: bounds.viewBound,
+                            diffBounds: [diffBound],
+                            diffX: bounds.diffX,
+                            diffY: bounds.diffY,
+                            viewPortPosition: bounds.viewPortPosition,
+                            viewPortKey: bounds.viewPortKey,
+                        });
+                        cacheCtx.restore();
+                    }
+
+                    this._refreshIncrementalState = false;
+                    console.timeEnd('viewMainscroll');
+
+                }
+                this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
+            }
+            cacheCtx.restore();
+        }
+
+        if(viewPortKey === 'viewMainTop') {
+            const cacheCtxTop = this._cacheCanvasTop.getContext();
+            cacheCtxTop.save();
+            const { left, top, right, bottom } = viewPortPosition;
+            const dw = right - left + rowHeaderWidth;
+            const dh = bottom - top + columnHeaderHeight;
+
+            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isForceDirty()) {
+                console.time('!!!viewMainTop_clear');
+                // if (this.isViewPortDirty(viewPortKey) || this.isForceDirty()) {
+                if (this.isDirty() || this._forceDirty) {
+                    this._cacheCanvasTop.clear();
+                    cacheCtxTop.setTransform(mainCtx.getTransform());
+                    this._draw(cacheCtxTop, bounds);
+
+                    this._forceDirty = false;
+                }
+                this._applyCacheFreeze(mainCtx, this._cacheCanvasTop, left, top, dw, dh, left, top, dw, dh);
+                console.timeEnd('!!!viewMainTop_clear');
+            } else {
+                if (this.isViewPortDirty(viewPortKey)) {
+                    console.time('viewMainTop_diff')
+                    cacheCtxTop.save();
+                    cacheCtxTop.setTransform(1, 0, 0, 1, 0, 0);
+                    cacheCtxTop.globalCompositeOperation = 'copy';
+                    cacheCtxTop.drawImage(this._cacheCanvasTop.getCanvasEle(), diffX * scaleX, diffY * scaleY);
+                    cacheCtxTop.restore();
+
+                    this._refreshIncrementalState = true;
+                    cacheCtxTop.setTransform(mainCtx.getTransform());
+                    for (const diffBound of diffBounds) {
+                        const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
+                        cacheCtxTop.save();
+                        cacheCtxTop.beginPath();
+                        const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        cacheCtxTop.rectByPrecision(x, y, w, h);
+                        // console.log('view', viewBound, '!!!rect', x, y, w, h, rowHeaderWidth);
+
+                        cacheCtxTop.clip();
+                        this._draw(cacheCtxTop, {
+                            viewBound: bounds.viewBound,
+                            diffBounds: [diffBound],
+                            diffX: bounds.diffX,
+                            diffY: bounds.diffY,
+                            viewPortPosition: bounds.viewPortPosition,
+                            viewPortKey: bounds.viewPortKey,
+                        });
+                        cacheCtxTop.restore();
+                    }
+                    console.timeEnd('viewMainTop_diff')
+
+                    this._refreshIncrementalState = false;
+                }
+                this._applyCacheFreeze(mainCtx, this._cacheCanvasTop, left, top, dw, dh, left, top, dw, dh);
+            }
+            cacheCtxTop.restore();
+        }
+
+        if(viewPortKey === 'viewMainLeftTop') {
+            const cacheCtxLeftTop = this._cacheCanvasLeftTop.getContext();
+            cacheCtxLeftTop.save();
+            const { left, top, right, bottom } = viewPortPosition;
+            const dw = right - left + rowHeaderWidth;
+            const dh = bottom - top + columnHeaderHeight;
+
+            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isForceDirty()) {
+                // if (this.isViewPortDirty(viewPortKey) || this.isForceDirty()) {
+                if (this.isDirty() || this._forceDirty) {
+                    this._cacheCanvasLeftTop.clear();
+                    cacheCtxLeftTop.setTransform(mainCtx.getTransform());
+                    this._draw(cacheCtxLeftTop, bounds);
+
+                    this._forceDirty = false;
+                }
+                this._applyCacheFreeze(mainCtx, this._cacheCanvasLeftTop, left, top, dw, dh, left, top, dw, dh);
+            } else {
+                if (this.isViewPortDirty(viewPortKey)) {
+                    cacheCtxLeftTop.save();
+                    cacheCtxLeftTop.setTransform(1, 0, 0, 1, 0, 0);
+                    cacheCtxLeftTop.globalCompositeOperation = 'copy';
+                    cacheCtxLeftTop.drawImage(this._cacheCanvasLeftTop.getCanvasEle(), diffX * scaleX, diffY * scaleY);
+                    cacheCtxLeftTop.restore();
+
+                    this._refreshIncrementalState = true;
+                    cacheCtxLeftTop.setTransform(mainCtx.getTransform());
+                    for (const diffBound of diffBounds) {
+                        const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
+                        cacheCtxLeftTop.save();
+                        cacheCtxLeftTop.beginPath();
+                        const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        cacheCtxLeftTop.rectByPrecision(x, y, w, h);
+                        // console.log('view', viewBound, '!!!rect', x, y, w, h, rowHeaderWidth);
+
+                        cacheCtxLeftTop.clip();
+                        this._draw(cacheCtxLeftTop, {
+                            viewBound: bounds.viewBound,
+                            diffBounds: [diffBound],
+                            diffX: bounds.diffX,
+                            diffY: bounds.diffY,
+                            viewPortPosition: bounds.viewPortPosition,
+                            viewPortKey: bounds.viewPortKey,
+                        });
+                        cacheCtxLeftTop.restore();
+                    }
+
+                    this._refreshIncrementalState = false;
+                }
+                this._applyCacheFreeze(mainCtx, this._cacheCanvasLeftTop, left, top, dw, dh, left, top, dw, dh);
+            }
+            cacheCtxLeftTop.restore();
+        }
+
+        if(viewPortKey === 'viewMainLeft') {
+            const cacheCtxLeft = this._cacheCanvasLeft.getContext();
+            cacheCtxLeft.save();
+            const { left, top, right, bottom } = viewPortPosition;
+            const dw = right - left + rowHeaderWidth;
+            const dh = bottom - top + columnHeaderHeight;
+
+            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isForceDirty()) {
+                console.time('!!!viewMainTop_clear');
+                // if (this.isViewPortDirty(viewPortKey) || this.isForceDirty()) {
+                if (this.isDirty() || this._forceDirty) {
+                    this._cacheCanvasLeft.clear();
+                    cacheCtxLeft.setTransform(mainCtx.getTransform());
+                    this._draw(cacheCtxLeft, bounds);
+
+                    this._forceDirty = false;
+                }
+                this._applyCacheFreeze(mainCtx, this._cacheCanvasLeft, left, top, dw, dh, left, top, dw, dh);
+                console.timeEnd('!!!viewMainTop_clear');
+            } else {
+                if (this.isViewPortDirty(viewPortKey)) {
+                    console.time('viewMainTop_diff')
+                    cacheCtxLeft.save();
+                    cacheCtxLeft.setTransform(1, 0, 0, 1, 0, 0);
+                    cacheCtxLeft.globalCompositeOperation = 'copy';
+                    cacheCtxLeft.drawImage(this._cacheCanvasLeft.getCanvasEle(), diffX * scaleX, diffY * scaleY);
+                    cacheCtxLeft.restore();
+
+                    this._refreshIncrementalState = true;
+                    cacheCtxLeft.setTransform(mainCtx.getTransform());
+                    for (const diffBound of diffBounds) {
+                        const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
+                        cacheCtxLeft.save();
+                        cacheCtxLeft.beginPath();
+                        const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        cacheCtxLeft.rectByPrecision(x, y, w, h);
+                        // console.log('view', viewBound, '!!!rect', x, y, w, h, rowHeaderWidth);
+
+                        cacheCtxLeft.clip();
+                        this._draw(cacheCtxLeft, {
+                            viewBound: bounds.viewBound,
+                            diffBounds: [diffBound],
+                            diffX: bounds.diffX,
+                            diffY: bounds.diffY,
+                            viewPortPosition: bounds.viewPortPosition,
+                            viewPortKey: bounds.viewPortKey,
+                        });
+                        cacheCtxLeft.restore();
+                    }
+                    console.timeEnd('viewMainTop_diff')
+
+                    this._refreshIncrementalState = false;
+                }
+                this._applyCacheFreeze(mainCtx, this._cacheCanvasLeft, left, top, dw, dh, left, top, dw, dh);
+            }
+            cacheCtxLeft.restore();
+        }
+    }
+
     override render(mainCtx: UniverRenderingContext, bounds: IViewportBound) {
         if (!this.visible) {
             this.makeDirty(false);
@@ -300,145 +566,15 @@ export class Spreadsheet extends SheetComponent {
 
         mainCtx.save();
 
-        const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
 
-        const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
-
-        mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
+        // const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
+        // mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
 
         this._drawAuxiliary(mainCtx, bounds);
 
-        const { viewBound, diffBounds, diffX, diffY, viewPortPosition, viewPortKey } = bounds;
+        const { viewPortKey } = bounds;
         if (bounds && this._allowCache === true) {
-            const { viewBound, diffBounds, diffX, diffY, viewPortPosition, viewPortKey } = bounds;
-
-            if (viewPortKey === 'viewMain') {
-                const cacheCtx = this._cacheCanvas.getContext();
-                cacheCtx.save();
-                const { left, top, right, bottom } = viewPortPosition;
-
-                const dw = right - left + rowHeaderWidth;
-
-                const dh = bottom - top + columnHeaderHeight;
-
-                if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this._forceDirty) {
-                    if (this.isDirty() || this._forceDirty) {
-                        this._cacheCanvas.clear();
-                        cacheCtx.setTransform(mainCtx.getTransform());
-                        this._draw(cacheCtx, bounds);
-                        this._forceDirty = false;
-                    }
-                    this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
-                } else {
-                    // 一直 true 的话，会有残影出现
-                    // if (this.isViewPortDirty(viewPortKey)) {
-                    if (this.isDirty()) {
-                        console.time('viewMainscroll');
-
-                        cacheCtx.save();
-                        cacheCtx.setTransform(1, 0, 0, 1, 0, 0);
-                        cacheCtx.globalCompositeOperation = 'copy';
-                        cacheCtx.drawImage(this._cacheCanvas.getCanvasEle(), diffX * scaleX, diffY * scaleY);
-                        // const imageData = cacheCtx.getImageData(0, 0, this._cacheCanvas.getCanvasEle().width, this._cacheCanvas.getCanvasEle().height);
-                        // cacheCtx.clearRect(0, 0, this._cacheCanvas.getCanvasEle().width, this._cacheCanvas.getCanvasEle().height);
-                        // cacheCtx.putImageData(imageData, diffX * scaleX, diffY * scaleY);
-                        cacheCtx.restore();
-
-                        this._refreshIncrementalState = true;
-                        cacheCtx.setTransform(mainCtx.getTransform());
-
-                        for (const diffBound of diffBounds) {
-                            const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
-                            cacheCtx.save();
-                            cacheCtx.beginPath();
-                            const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                            const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                            const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                            const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                            cacheCtx.rectByPrecision(x, y, w, h);
-                            // cacheCtx.fillStyle = 'pink';
-                            // console.log('view', viewBound, '!!!rect', x, y, w, h, rowHeaderWidth);
-
-                            cacheCtx.clip();
-                            // cacheCtx.fill();
-                            this._draw(cacheCtx, {
-                                viewBound: bounds.viewBound,
-                                diffBounds: [diffBound],
-                                diffX: bounds.diffX,
-                                diffY: bounds.diffY,
-                                viewPortPosition: bounds.viewPortPosition,
-                                viewPortKey: bounds.viewPortKey,
-                            });
-                            cacheCtx.restore();
-                        }
-
-                        this._refreshIncrementalState = false;
-                        console.timeEnd('viewMainscroll');
-
-                    }
-                    this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
-                }
-                cacheCtx.restore();
-            }
-
-            if(viewPortKey === 'viewMainTop') {
-                const cacheCtxTop = this._cacheCanvasTop.getContext();
-                cacheCtxTop.save();
-                const { left, top, right, bottom } = viewPortPosition;
-                const dw = right - left + rowHeaderWidth;
-                const dh = bottom - top + columnHeaderHeight;
-
-                if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this._forceDirty) {
-                    console.time('viewMainTop_clear');
-                    if (this.isViewPortDirty(viewPortKey) || this._forceDirty) {
-                        this._cacheCanvasTop.clear();
-                        cacheCtxTop.setTransform(mainCtx.getTransform());
-                        this._draw(cacheCtxTop, bounds);
-                        this._forceDirty = false;
-                    }
-                    this._applyCacheFreeze(mainCtx, this._cacheCanvasTop, left, top, dw, dh, left, top, dw, dh);
-                    console.timeEnd('viewMainTop_clear');
-                } else {
-                    if (this.isDirty()) {
-                        console.time('viewMainTop_diff')
-                        cacheCtxTop.save();
-                        cacheCtxTop.setTransform(1, 0, 0, 1, 0, 0);
-                        cacheCtxTop.globalCompositeOperation = 'copy';
-                        cacheCtxTop.drawImage(this._cacheCanvasTop.getCanvasEle(), diffX * scaleX, diffY * scaleY);
-                        cacheCtxTop.restore();
-
-                        this._refreshIncrementalState = true;
-                        cacheCtxTop.setTransform(mainCtx.getTransform());
-                        for (const diffBound of diffBounds) {
-                            const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
-                            cacheCtxTop.save();
-                            cacheCtxTop.beginPath();
-                            const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                            const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                            const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                            const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                            cacheCtxTop.rectByPrecision(x, y, w, h);
-                            // console.log('view', viewBound, '!!!rect', x, y, w, h, rowHeaderWidth);
-
-                            cacheCtxTop.clip();
-                            this._draw(cacheCtxTop, {
-                                viewBound: bounds.viewBound,
-                                diffBounds: [diffBound],
-                                diffX: bounds.diffX,
-                                diffY: bounds.diffY,
-                                viewPortPosition: bounds.viewPortPosition,
-                                viewPortKey: bounds.viewPortKey,
-                            });
-                            cacheCtxTop.restore();
-                        }
-                        console.timeEnd('viewMainTop_diff')
-
-                        this._refreshIncrementalState = false;
-                    }
-                    this._applyCacheFreeze(mainCtx, this._cacheCanvasTop, left, top, dw, dh, left, top, dw, dh);
-                }
-                cacheCtxTop.restore();
-            }
+            this.renderByViewport(mainCtx, bounds, spreadsheetSkeleton);
 
         } else {
             this._draw(mainCtx, bounds);
@@ -464,6 +600,8 @@ export class Spreadsheet extends SheetComponent {
         const { width, height } = parentSize;
         this._cacheCanvas.setSize(width, height);
         this._cacheCanvasTop.setSize(width, height);
+        this._cacheCanvasLeft.setSize(width, height);
+        this._cacheCanvasLeftTop.setSize(width, height);
         // this.makeDirty(true);
         // resize 后要整个重新绘制
         // render 根据 _forceDirty 才清空 cacheCanvas
@@ -594,10 +732,14 @@ export class Spreadsheet extends SheetComponent {
 
     private _addMakeDirtyToScroll() {
         this._hasScrollViewportOperator(this, (viewport: Viewport) => {
+            // 只有 viewMain 才会进入这里
+            console.log('!!!!!_addMakeDirtyToScroll', viewport.viewPortKey);
             viewport.onScrollBeforeObserver.add((eventData) => {
                 // this.makeDirty(true);
                 // eventData.viewport
-                this.markViewPortDirty(false, eventData.viewport?.viewPortKey);
+                console.log('!!_hasScrollViewportOperator', eventData.viewport?.viewPortKey);
+                // this.markViewPortDirty(true, eventData.viewport?.viewPortKey);
+                this.markViewPortDirty(true);
             });
         });
     }

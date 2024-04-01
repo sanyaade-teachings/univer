@@ -236,6 +236,10 @@ export class Layer extends Disposable {
 
     private _draw(mainCtx: UniverRenderingContext, isMaxLayer: boolean) {
         this._scene.getViewports()?.forEach((vp) => vp.render(mainCtx, this.getObjectsByOrder(), isMaxLayer));
+        console.log('!!!layer_forcedirty')
+        this.getObjectsByOrder().forEach( o => {
+            o.makeDirty?.(false);
+        })
     }
 
     private _applyCache(ctx?: UniverRenderingContext) {
