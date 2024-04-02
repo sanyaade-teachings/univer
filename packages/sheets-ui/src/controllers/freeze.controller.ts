@@ -181,6 +181,10 @@ export class FreezeController extends Disposable {
         this._bindViewportScroll();
 
         this._zoomRefresh();
+
+
+        // this._getViewports();
+        this._getSheetObject()?.spreadsheet.setViewports(Object.values(this._getViewports()|| {}));
     }
 
     private _createFreeze(
@@ -757,6 +761,7 @@ export class FreezeController extends Disposable {
         if (!viewports) {
             return;
         }
+
 
         const {
             viewMain,
@@ -1574,7 +1579,10 @@ export class FreezeController extends Disposable {
         this._createFreeze(FREEZE_DIRECTION_TYPE.COLUMN, newFreeze);
 
         this._updateViewport(startRow, startColumn, ySplit, xSplit, resetScroll);
+        // this._getSheetObject()?.spreadsheet.makeForceDirty();
+        this._getSheetObject()?.spreadsheet.makeForceDirtyByViewMap();
 
-        this._getSheetObject()?.spreadsheet.makeForceDirty();
+
+
     }
 }

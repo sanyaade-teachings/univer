@@ -520,7 +520,7 @@ export class Viewport {
         return composeResult;
     }
 
-    render(parentCtx?: UniverRenderingContext, objects: BaseObject[] = [], isMaxLayer = false) {
+    render(parentCtx?: UniverRenderingContext, objects: BaseObject[] = [], isMaxLayer = false, isLast = false) {
         if (
             this.isActive === false ||
             this.width == null ||
@@ -559,6 +559,11 @@ export class Viewport {
         objects.forEach((o) => {
             o.render(ctx, viewBound);
         });
+        if(isLast) {
+            objects.forEach((o) => {
+                o.makeDirty(false);
+            });
+        }
         ctx.restore();
 
         if (this._scrollBar && isMaxLayer) {

@@ -273,7 +273,7 @@ export class Spreadsheet extends SheetComponent {
         // this.makeDirty(state);
         console.log('!!!_forceDirty', state);
         this._forceDirty = state;
-        this.makeForceDirtyByViewMap();
+        // this.makeForceDirtyByViewMap();
     }
 
     setForceDisableGridlines(disabled: boolean) {
@@ -499,8 +499,8 @@ export class Spreadsheet extends SheetComponent {
                 }
                 this._applyCacheFreeze(mainCtx, this._cacheCanvasLeftTop, left, top, dw, dh, left, top, dw, dh);
             } else {
-                // if (this.isViewPortDirty(viewPortKey)) {
-                if( this.isDirty()){
+                if (this.isViewPortDirty(viewPortKey)) {
+                // if( this.isDirty()){
                     cacheCtxLeftTop.save();
                     cacheCtxLeftTop.setTransform(1, 0, 0, 1, 0, 0);
                     cacheCtxLeftTop.globalCompositeOperation = 'copy';
@@ -647,7 +647,7 @@ export class Spreadsheet extends SheetComponent {
         mainCtx.restore();
 
 
-        this.makeDirty(false);
+
 
         return this;
     }
@@ -666,6 +666,7 @@ export class Spreadsheet extends SheetComponent {
         // resize 后要整个重新绘制
         // render 根据 _forceDirty 才清空 cacheCanvas
         this.makeForceDirty(true);
+        this.makeForceDirtyByViewMap();
 
     }
 
