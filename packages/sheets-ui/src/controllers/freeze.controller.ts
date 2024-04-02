@@ -1547,6 +1547,14 @@ export class FreezeController extends Disposable {
         return getSheetObject(this._currentUniverService, this._renderManagerService);
     }
 
+    /**
+     * 调整冻结 & 缩放都会进入
+     * @param startRow
+     * @param startColumn
+     * @param ySplit
+     * @param xSplit
+     * @param resetScroll
+     */
     private _refreshFreeze(
         startRow: number,
         startColumn: number,

@@ -155,9 +155,9 @@ export class SheetCanvasView extends RxDisposable {
 
         const sheetId = worksheet.getSheetId();
 
-        const viewMain = this._addViewport(worksheet);
-
         const spreadsheet = new Spreadsheet(SHEET_VIEW_KEY.MAIN);
+        const viewMain = this._addViewport(worksheet, spreadsheet);
+
         const spreadsheetRowHeader = new SpreadsheetRowHeader(SHEET_VIEW_KEY.ROW);
         const spreadsheetColumnHeader = new SpreadsheetColumnHeader(SHEET_VIEW_KEY.COLUMN);
         const SpreadsheetLeftTopPlaceholder = new Rect(SHEET_VIEW_KEY.LEFT_TOP, {
@@ -199,7 +199,7 @@ export class SheetCanvasView extends RxDisposable {
      * | VIEW_ROW_BOTTOM |   VIEW_MAIN_LEFT   |     VIEW_MAIN     |
      * +-----------------+--------------------+-------------------+
      */
-    private _addViewport(worksheet: Worksheet) {
+    private _addViewport(worksheet: Worksheet, spreadsheet: Spreadsheet) {
         const scene = this._scene;
         if (scene == null) {
             return;
@@ -251,7 +251,7 @@ export class SheetCanvasView extends RxDisposable {
             isRelativeY: false,
         });
 
-        new Viewport(VIEWPORT_KEY.VIEW_LEFT_TOP, scene, {
+        const viewLeftTop = new Viewport(VIEWPORT_KEY.VIEW_LEFT_TOP, scene, {
             left: 0,
             top: 0,
             width: rowHeader.width,
@@ -261,26 +261,27 @@ export class SheetCanvasView extends RxDisposable {
             isRelativeY: false,
         });
 
-        new Viewport(VIEWPORT_KEY.VIEW_MAIN_LEFT_TOP, scene, {
+        const viewMainLeftTop = new Viewport(VIEWPORT_KEY.VIEW_MAIN_LEFT_TOP, scene, {
             isWheelPreventDefaultX: true,
             active: false,
             isRelativeX: false,
             isRelativeY: false,
         });
 
-        new Viewport(VIEWPORT_KEY.VIEW_MAIN_LEFT, scene, {
+        const viewMainLeft = new Viewport(VIEWPORT_KEY.VIEW_MAIN_LEFT, scene, {
             isWheelPreventDefaultX: true,
             active: false,
             isRelativeX: false,
             isRelativeY: true,
         });
 
-        new Viewport(VIEWPORT_KEY.VIEW_MAIN_TOP, scene, {
+        const viewMainTop = new Viewport(VIEWPORT_KEY.VIEW_MAIN_TOP, scene, {
             isWheelPreventDefaultX: true,
             active: false,
             isRelativeX: true,
             isRelativeY: false,
         });
+        spreadsheet.setViewports([viewMain, viewMainTop, viewMainLeftTop, viewMainLeft]);
 
         // mouse scroll
         this.disposeWithMe(

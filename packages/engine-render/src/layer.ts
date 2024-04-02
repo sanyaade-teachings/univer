@@ -21,7 +21,7 @@ import { BaseObject } from './base-object';
 import { RENDER_CLASS_TYPE } from './basics/const';
 import { Canvas } from './canvas';
 import type { UniverRenderingContext } from './context';
-import type { ThinScene } from './thin-scene';
+import type { Scene } from './scene';
 
 export class Layer extends Disposable {
     private _objects: BaseObject[] = [];
@@ -31,7 +31,7 @@ export class Layer extends Disposable {
     protected _dirty: boolean = true;
 
     constructor(
-        private _scene: ThinScene,
+        private _scene: Scene,
         objects: BaseObject[] = [],
         private _zIndex: number = 1,
         private _allowCache: boolean = false
@@ -238,8 +238,8 @@ export class Layer extends Disposable {
         this._scene.getViewports()?.forEach((vp) => vp.render(mainCtx, this.getObjectsByOrder(), isMaxLayer));
         // console.log('!!!layer_forcedirty')
         this.getObjectsByOrder().forEach( o => {
-            o.makeDirty?.(false);
-            o.makeForceDirty?.(false);
+            // o.makeDirty?.(false);
+            // o.makeForceDirty?.(false);
         })
     }
 

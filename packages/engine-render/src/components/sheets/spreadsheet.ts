@@ -39,6 +39,7 @@ import type { Font } from './extensions/font';
 // import type { BorderCacheItem } from './interfaces';
 import { SheetComponent } from './sheet-component';
 import type { SpreadsheetSkeleton } from './sheet-skeleton';
+import { Layer } from '../../layer';
 
 const OBJECT_KEY = '__SHEET_EXTENSION_FONT_DOCUMENT_INSTANCE__';
 
@@ -58,6 +59,13 @@ export class Spreadsheet extends SheetComponent {
     private _refreshIncrementalState = false;
 
     private _forceDirty = false;
+    private _forceDirtyByViewport: Record<string, boolean> = {};
+        // 无法导入
+        // VIEWPORT_KEY.VIEW_MAIN: false,
+        // VIEWPORT_KEY.VIEW_MAIN_TOP: false,
+        // VIEWPORT_KEY.VIEW_MAIN_LEFT_TOP,
+
+
 
     private _overflowCacheRuntime: { [row: number]: boolean } = {};
 
@@ -80,7 +88,6 @@ export class Spreadsheet extends SheetComponent {
         private _allowCache: boolean = true
     ) {
         super(oKey, spreadsheetSkeleton);
-
         if (this._allowCache) {
             this._cacheCanvas = new Canvas();
             this._cacheCanvasTop = new Canvas();
@@ -99,17 +106,18 @@ export class Spreadsheet extends SheetComponent {
         }
 
         this._initialDefaultExtension();
-
         this.makeDirty(true);
+    }
+
+    setViewports(viewports: Viewport[]) {
+        viewports.forEach( v => {
+            this._forceDirtyByViewport[v.viewPortKey] = false;
+            this.viewportDirty.set(v.viewPortKey, true);
+        })
         this._cacheCanvasMap.set('viewMain', this._cacheCanvas);
         this._cacheCanvasMap.set('viewMainTop', this._cacheCanvasTop);
         this._cacheCanvasMap.set('viewMainLeft', this._cacheCanvasLeft);
         this._cacheCanvasMap.set('viewMainLeftTop', this._cacheCanvasLeftTop);
-        this.viewportDirty.set('viewMain', true);
-        this.viewportDirty.set('viewMainTop', true);
-        this.viewportDirty.set('viewMainLeft', true);
-        this.viewportDirty.set('viewMainLeftTop', true);
-
     }
 
     displayCache() {
@@ -244,10 +252,28 @@ export class Spreadsheet extends SheetComponent {
         return this._forceDirty;
     }
 
+    isForceDirtyByViewMap(viewPortKey: string){
+        return this._forceDirtyByViewport[viewPortKey];
+    }
+
+    makeForceDirtyByViewMap(viewPortKey?: string){
+        // return this._forceDirtyByViewport[viewPortKey];
+
+        if(!viewPortKey) {
+            Object.keys(this._forceDirtyByViewport).forEach(key => {
+                this._forceDirtyByViewport[key] = true;
+                // console.log(key + ': ' + this._forceDirtyByViewport[key]);
+            });
+        } else {
+            this._forceDirtyByViewport[viewPortKey] = true;
+        }
+    }
+
     makeForceDirty(state = true) {
         // this.makeDirty(state);
         console.log('!!!_forceDirty', state);
         this._forceDirty = state;
+        this.makeForceDirtyByViewMap();
     }
 
     setForceDisableGridlines(disabled: boolean) {
@@ -300,6 +326,8 @@ export class Spreadsheet extends SheetComponent {
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
         mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
+
+        console.time('!!!viewMain_render')
         if (viewPortKey === 'viewMain') {
             const cacheCtx = this._cacheCanvas.getContext();
             cacheCtx.save();
@@ -309,8 +337,12 @@ export class Spreadsheet extends SheetComponent {
 
             const dh = bottom - top + columnHeaderHeight;
 
-            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isForceDirty()) {
-                if (this.isDirty() || this.isForceDirty()) {
+            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isForceDirtyByViewMap(viewPortKey)) {
+                console.time('!!!viewMain_render_111');
+                console.log('!!!viewMain_render_111, diffBounds', diffBounds, diffX, this.isForceDirtyByViewMap(viewPortKey))
+                if (this.isDirty() || this.isForceDirtyByViewMap(viewPortKey)) {
+
+
                     this._cacheCanvas.clear();
                     cacheCtx.setTransform(mainCtx.getTransform());
                     this._draw(cacheCtx, bounds);
@@ -318,6 +350,7 @@ export class Spreadsheet extends SheetComponent {
                     // 注释掉这个 缓存 font 计算就失效了
                     // 但是有这句话，缩放又有问题。
                     // this._forceDirty = false;
+                    this._forceDirtyByViewport[viewPortKey] = false;
                 }
                 this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
                 console.timeEnd('!!!viewMain_render_111');
@@ -370,10 +403,15 @@ export class Spreadsheet extends SheetComponent {
 
                 }
                 this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
+
+                console.timeEnd('!!!viewMain_render_222');
             }
             cacheCtx.restore();
         }
+        console.timeEnd('!!!viewMain_render')
 
+
+        console.time('!!!viewMainTop_render');
         if(viewPortKey === 'viewMainTop') {
 
             const cacheCtxTop = this._cacheCanvasTop.getContext();
@@ -382,22 +420,25 @@ export class Spreadsheet extends SheetComponent {
             const dw = right - left + rowHeaderWidth;
             const dh = bottom - top + columnHeaderHeight;
 
-            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isDirty() || this.isForceDirty()) {
-                console.time('!!!viewMainTop_render');
-                console.log('!!!renderByViewPort', this.isDirty(), this.isForceDirty(), this.isViewPortDirty(viewPortKey))
+            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isForceDirtyByViewMap(viewPortKey)) {
+                console.time('!!!viewMainTop_render_111');
+                console.log('!!!viewMainTop_render_111', diffBounds, diffX, this.isDirty(), this.isForceDirtyByViewMap(viewPortKey));
+                // console.log('!!!renderByViewPort', this.isDirty(), this.isForceDirty(), this.isViewPortDirty(viewPortKey))
                 // if (this.isViewPortDirty(viewPortKey) || this.isForceDirty()) {
-                if (this.isDirty() || this.isForceDirty()) {
+                if (this.isDirty() || this.isForceDirtyByViewMap(viewPortKey)) {
                     this._cacheCanvasTop.clear();
                     cacheCtxTop.setTransform(mainCtx.getTransform());
                     this._draw(cacheCtxTop, bounds);
 
                     // this._forceDirty = false;
+                    this._forceDirtyByViewport[viewPortKey] = false;
                 }
                 this._applyCacheFreeze(mainCtx, this._cacheCanvasTop, left, top, dw, dh, left, top, dw, dh);
-                console.timeEnd('!!!viewMainTop_render');
+                console.timeEnd('!!!viewMainTop_render_111');
             } else {
                 if (this.isViewPortDirty(viewPortKey)) {
-                    // console.time('viewMainTop_diff')
+                // if( this.isDirty()){
+                    console.time('viewMainTop_diff')
                     cacheCtxTop.save();
                     cacheCtxTop.setTransform(1, 0, 0, 1, 0, 0);
                     cacheCtxTop.globalCompositeOperation = 'copy';
@@ -427,7 +468,7 @@ export class Spreadsheet extends SheetComponent {
                         });
                         cacheCtxTop.restore();
                     }
-                    // console.timeEnd('viewMainTop_diff')
+                    console.timeEnd('viewMainTop_diff')
 
                     this._refreshIncrementalState = false;
                 }
@@ -435,7 +476,10 @@ export class Spreadsheet extends SheetComponent {
             }
             cacheCtxTop.restore();
         }
+        console.timeEnd('!!!viewMainTop_render');
 
+
+        console.time('!!!viewMainLeftTop_render');
         if(viewPortKey === 'viewMainLeftTop') {
             const cacheCtxLeftTop = this._cacheCanvasLeftTop.getContext();
             cacheCtxLeftTop.save();
@@ -443,18 +487,20 @@ export class Spreadsheet extends SheetComponent {
             const dw = right - left + rowHeaderWidth;
             const dh = bottom - top + columnHeaderHeight;
 
-            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isForceDirty()) {
+            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isForceDirtyByViewMap(viewPortKey)) {
                 // if (this.isViewPortDirty(viewPortKey) || this.isForceDirty()) {
-                if (this.isDirty() || this._forceDirty) {
+                if (this.isDirty() || this.isForceDirtyByViewMap(viewPortKey)) {
                     this._cacheCanvasLeftTop.clear();
                     cacheCtxLeftTop.setTransform(mainCtx.getTransform());
                     this._draw(cacheCtxLeftTop, bounds);
 
                     // this._forceDirty = false;
+                    this._forceDirtyByViewport[viewPortKey] = false;
                 }
                 this._applyCacheFreeze(mainCtx, this._cacheCanvasLeftTop, left, top, dw, dh, left, top, dw, dh);
             } else {
-                if (this.isViewPortDirty(viewPortKey)) {
+                // if (this.isViewPortDirty(viewPortKey)) {
+                if( this.isDirty()){
                     cacheCtxLeftTop.save();
                     cacheCtxLeftTop.setTransform(1, 0, 0, 1, 0, 0);
                     cacheCtxLeftTop.globalCompositeOperation = 'copy';
@@ -491,7 +537,10 @@ export class Spreadsheet extends SheetComponent {
             }
             cacheCtxLeftTop.restore();
         }
+        console.timeEnd('!!!viewMainLeftTop_render');
 
+
+        console.time('!!!viewMainLeft_render');
         if(viewPortKey === 'viewMainLeft') {
             const cacheCtxLeft = this._cacheCanvasLeft.getContext();
             cacheCtxLeft.save();
@@ -499,18 +548,22 @@ export class Spreadsheet extends SheetComponent {
             const dw = right - left + rowHeaderWidth;
             const dh = bottom - top + columnHeaderHeight;
 
-            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isForceDirty()) {
+            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || this.isForceDirtyByViewMap(viewPortKey)) {
                 // if (this.isViewPortDirty(viewPortKey) || this.isForceDirty()) {
-                if (this.isDirty() || this._forceDirty) {
+                console.time('!!!viewMainLeft_render_111');
+                if (this.isDirty() || this.isForceDirtyByViewMap(viewPortKey)) {
                     this._cacheCanvasLeft.clear();
                     cacheCtxLeft.setTransform(mainCtx.getTransform());
                     this._draw(cacheCtxLeft, bounds);
 
                     // this._forceDirty = false;
+                    this._forceDirtyByViewport[viewPortKey] = false;
                 }
                 this._applyCacheFreeze(mainCtx, this._cacheCanvasLeft, left, top, dw, dh, left, top, dw, dh);
+                console.timeEnd('!!!viewMainLeft_render_111');
             } else {
                 if (this.isViewPortDirty(viewPortKey)) {
+                // if( this.isDirty()){
                     cacheCtxLeft.save();
                     cacheCtxLeft.setTransform(1, 0, 0, 1, 0, 0);
                     cacheCtxLeft.globalCompositeOperation = 'copy';
@@ -547,6 +600,7 @@ export class Spreadsheet extends SheetComponent {
             }
             cacheCtxLeft.restore();
         }
+        console.timeEnd('!!!viewMainLeft_render');
     }
 
     override render(mainCtx: UniverRenderingContext, bounds: IViewportBound) {
@@ -582,7 +636,9 @@ export class Spreadsheet extends SheetComponent {
 
         const { viewPortKey } = bounds;
         if (bounds && this._allowCache === true) {
+            console.time('!!!renderByViewport');
             this.renderByViewport(mainCtx, bounds, spreadsheetSkeleton);
+            console.timeEnd('!!!renderByViewport');
 
         } else {
             this._draw(mainCtx, bounds);
@@ -591,11 +647,7 @@ export class Spreadsheet extends SheetComponent {
         mainCtx.restore();
 
 
-        // this.makeDirty(false);
-        this.markViewPortDirty(false, viewPortKey);
-        // if(this.viewportDirty.get('viewMain') === false && this.viewportDirty.get('viewMainTop') === false) {
-        //     this.makeDirty(false);
-        // }
+        this.makeDirty(false);
 
         return this;
     }
@@ -614,6 +666,7 @@ export class Spreadsheet extends SheetComponent {
         // resize 后要整个重新绘制
         // render 根据 _forceDirty 才清空 cacheCanvas
         this.makeForceDirty(true);
+
     }
 
     protected _applyCache(
