@@ -320,10 +320,13 @@ export class Spreadsheet extends SheetComponent {
                     // this._forceDirty = false;
                 }
                 this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
+                console.timeEnd('!!!viewMain_render_111');
             } else {
                 // 一直 true 的话，会有残影出现
-                // if (this.isViewPortDirty(viewPortKey)) {
+
+                console.time('!!!viewMain_render_222');
                 if (this.isViewPortDirty(viewPortKey)) {
+                // if( this.isDirty()){
                     // console.time('viewMainscroll');
 
                     cacheCtx.save();
