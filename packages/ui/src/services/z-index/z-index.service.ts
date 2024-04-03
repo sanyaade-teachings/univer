@@ -14,7 +14,21 @@
  * limitations under the License.
  */
 
-export class ZIndexManager {
+import { createIdentifier } from '@wendellhu/redi';
+
+export interface IZIndexService {
+
+    setIndex(name: string, index: number): void;
+
+    getIndex(name: string): number | undefined;
+
+    removeIndex(name: string): void;
+
+    getMaxIndex(): number;
+}
+export const ILayoutService = createIdentifier<IZIndexService>('ui.layout-service');
+
+export class DesktopZIndexService implements IZIndexService {
     static #MAX_INDEX = 2147483647;
     static #MIN_INDEX = -2147483647;
 
@@ -33,12 +47,6 @@ export class ZIndexManager {
     }
 
     getMaxIndex() {
-        let max = -9999999;
-        this._list.forEach((item) => {
-            if (+item > max) {
-                max = +item;
-            }
-        });
-        return max;
+        return Math.max(...Array.from(this._list.values()));
     }
 }
