@@ -326,10 +326,11 @@ export class Viewport {
         //         (this as IKeyValue)[pKey] = position[pKey as keyof IViewPosition];
         //     }
         // });
-
         this._setWithAndHeight(position);
+        console.log('!!!viewport resize', this._viewPortKey, position, this.left, this.right)
 
         this._resizeCacheCanvasAndScrollBar();
+        this.makeDirty();
     }
 
     setPadding(param: IPosition) {
@@ -353,6 +354,8 @@ export class Viewport {
 
     /**
      * scroll to position, absolute
+     * 只有 viewMain 才会被调用 scrollTo 其他 viewport 都不会调用此方法
+     * 具体在 scroll.controller 中
      * @param pos
      * @returns
      */
@@ -554,16 +557,20 @@ export class Viewport {
 
         ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
 
-        const viewBound = this._calViewportRelativeBounding();
-
-        objects.forEach((o) => {
-            o.render(ctx, viewBound);
-        });
-        if(isLast) {
+        let viewBound = this._calViewportRelativeBounding();
+        // 每次 loop mainCtx 都会被清空 因此不可以越过某一个 viewport 的 render
+        // if(this.isDirty){
             objects.forEach((o) => {
-                o.makeDirty(false);
+                o.render(ctx, viewBound, this.isDirty);
             });
-        }
+            if(isLast) {
+                objects.forEach((o) => {
+                    o.makeDirty(false);
+                    o.makeForceDirty?.(false);
+                });
+            }
+            this.makeDirty(false);
+        // }
         ctx.restore();
 
         if (this._scrollBar && isMaxLayer) {
@@ -773,6 +780,19 @@ export class Viewport {
         };
     }
 
+    private _isDirty = true;
+    makeDirty(state?: boolean) {
+        if(state !== undefined) {
+            this._isDirty = state;
+        } else {
+            this._isDirty = true;
+        }
+    }
+
+    get isDirty() {
+        return this._isDirty;
+    }
+
     private _resizeCacheCanvasAndScrollBar() {
         const actualScrollX = this.actualScrollX;
 
@@ -881,6 +901,13 @@ export class Viewport {
         }, 2);
     }
 
+    /**
+     * 只有 viewMain 会进入此函数  其他 viewport 不会
+     * @param scrollType
+     * @param pos
+     * @param isTrigger
+     * @returns
+     */
     private _scroll(scrollType: SCROLL_TYPE, pos: IScrollBarPosition, isTrigger = true) {
         const { x, y } = pos;
 
@@ -924,6 +951,18 @@ export class Viewport {
             limitY: this._scrollBar?.limitY,
             isTrigger,
         });
+
+        this.makeDirty();
+
+
+        // if(this.viewPortKey === 'viewMain') {
+        // }
+        if(this.scrollY !== 0) {
+            this.scene.getViewports().filter((vp:Viewport) => vp.viewPortKey === 'viewMainLeft').forEach((vp: Viewport) => vp.makeDirty());
+        }
+        if(this.scrollX !== 0) {
+            this.scene.getViewports().filter((vp:Viewport) => vp.viewPortKey === 'viewMainTop').forEach((vp: Viewport) => vp.makeDirty());
+        }
 
         if (this._scrollBar) {
             this._scrollBar.makeDirty(true);
@@ -1085,6 +1124,56 @@ export class Viewport {
                 bottom: endRow,
             };
         });
+
+        // function calculateAdditionalCoverage(A, B) {
+        //     let additionalAreas = [];
+
+        //     // 如果B在A的左侧有多余部分
+        //     if (B.left < A.left) {
+        //       additionalAreas.push({
+        //         top: B.top,
+        //         bottom: B.bottom,
+        //         left: B.left,
+        //         right: A.left
+        //       });
+        //     }
+
+        //     // 如果B在A的右侧有多余部分
+        //     if (B.right > A.right) {
+        //       additionalAreas.push({
+        //         top: B.top,
+        //         bottom: B.bottom,
+        //         left: A.right,
+        //         right: B.right
+        //       });
+        //     }
+
+        //     // 如果B在A的上方有多余部分
+        //     if (B.top < A.top) {
+        //       additionalAreas.push({
+        //         top: B.top,
+        //         bottom: A.top,
+        //         left: Math.max(A.left, B.left),
+        //         right: Math.min(A.right, B.right)
+        //       });
+        //     }
+
+        //     // 如果B在A的下方有多余部分
+        //     if (B.bottom > A.bottom) {
+        //       additionalAreas.push({
+        //         top: A.bottom,
+        //         bottom: B.bottom,
+        //         left: Math.max(A.left, B.left),
+        //         right: Math.min(A.right, B.right)
+        //       });
+        //     }
+
+        //     return additionalAreas;
+        //   }
+
+        //   // 示例用法
+        //   let additionalAreas = calculateAdditionalCoverage(mainBound, subBound);
+        //   return additionalAreas;
     }
 
     private _drawScrollbar(ctx: UniverRenderingContext) {

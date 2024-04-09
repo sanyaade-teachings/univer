@@ -281,7 +281,7 @@ export class SheetCanvasView extends RxDisposable {
             isRelativeX: true,
             isRelativeY: false,
         });
-        // spreadsheet.setViewports([viewMain, viewMainTop, viewMainLeftTop, viewMainLeft]);
+        spreadsheet.setViewports([viewMain, viewMainTop, viewMainLeftTop, viewMainLeft]);
 
         // mouse scroll
         this.disposeWithMe(

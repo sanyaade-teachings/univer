@@ -652,4 +652,35 @@ export class Tools {
     ) {
         return range1End >= range2Start && range2End >= range1Start;
     }
+
+    static hasIntersectionBetweenTwoBounds(
+        rect1: {
+            left: number;
+            top: number;
+            width: number;
+            height: number;
+        },
+        rect2: {
+            left: number;
+            top: number;
+            width: number;
+            height: number;
+        },
+    ) {
+        const rect1Right = rect1.left + rect1.width;
+        const rect2Right = rect2.left + rect2.width;
+        const rect1Bottom = rect1.top + rect1.height;
+        const rect2Bottom = rect2.top + rect2.height;
+
+        if (
+            rect1.left > rect2Right ||  // rect1 在 rect2 右侧
+            rect1Right < rect2.left ||  // rect1 在 rect2 左侧
+            rect1.top > rect2Bottom ||   // rect1 在 rect2 下方
+            rect1Bottom < rect2.top      // rect1 在 rect2 上方
+          ) {
+            return false;
+          }
+
+          return true;
+    }
 }

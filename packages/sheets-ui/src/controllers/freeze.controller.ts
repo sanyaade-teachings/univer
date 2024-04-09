@@ -184,7 +184,8 @@ export class FreezeController extends Disposable {
 
 
         // this._getViewports();
-        this._getSheetObject()?.spreadsheet.setViewports(Object.values(this._getViewports()|| {}));
+        // 非冻结也需要 viewports  所以逻辑还是放在 sheet-canvas-view 中
+        // this._getSheetObject()?.spreadsheet.setViewports(Object.values(this._getViewports()|| {}));
     }
 
     private _createFreeze(
@@ -1554,6 +1555,7 @@ export class FreezeController extends Disposable {
 
     /**
      * 调整冻结 & 缩放都会进入
+     * 但是窗口 resize 并不会进入
      * @param startRow
      * @param startColumn
      * @param ySplit

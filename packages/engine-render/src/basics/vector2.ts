@@ -854,5 +854,15 @@ export interface IViewportBound {
     diffX: number;
     diffY: number;
     viewPortPosition: IBoundRectNoAngle;
-    viewPortKey?: string;
+    viewPortKey: string;
+}
+
+
+export interface IViewportBounds {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+    width: number;
+    height: number;
 }
