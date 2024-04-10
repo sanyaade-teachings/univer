@@ -107,7 +107,7 @@ export class Spreadsheet extends SheetComponent {
 
                 (parent as Scene)?.getViewports().forEach(vp => vp.makeDirty());
                 // @ts-ignore
-                window.scene = parent;
+                // window.scene = parent;
 
             });
         }
@@ -296,7 +296,7 @@ export class Spreadsheet extends SheetComponent {
         // this.makeDirty(state);
         console.log('!!!_forceDirty', state);
         this._forceDirty = state;
-        this.makeForceDirtyByViewMap();
+        // this.makeForceDirtyByViewMap();
     }
 
     setForceDisableGridlines(disabled: boolean) {
@@ -314,7 +314,7 @@ export class Spreadsheet extends SheetComponent {
      */
     override makeDirty(state: boolean = true) {
         super.makeDirty(state);
-        this.getScene()?.getViewports().forEach(vp => vp.makeDirty());
+        // this.getScene()?.getViewports().forEach(vp => vp.makeDirty());
         return this;
     }
 
@@ -360,13 +360,12 @@ export class Spreadsheet extends SheetComponent {
 
     }
 
-    renderByViewport(mainCtx: UniverRenderingContext, bounds: IViewportBound, isDirty: boolean, spreadsheetSkeleton: SpreadsheetSkeleton) {
-        const { viewBound, diffBounds, diffX, diffY, viewPortPosition, viewPortKey } = bounds;
+    renderByViewport(mainCtx: UniverRenderingContext, bounds: IViewportBound, spreadsheetSkeleton: SpreadsheetSkeleton) {
+        const { viewBound, diffBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty } = bounds;
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
         mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
 
-        console.time('!!!viewMain_render')
         if (viewPortKey === 'viewMain') {
             const cacheCtx = this._cacheCanvas.getContext();
             cacheCtx.save();
@@ -378,10 +377,9 @@ export class Spreadsheet extends SheetComponent {
 
 
             // 没有滚动
-            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0)) {
-                console.time('!!!viewMain_render_111');
-                console.log('!!!viewMain_render_111, diffBounds', diffBounds, diffX, this.isForceDirtyByViewMap(viewPortKey))
-                if (this.isDirty() || this.isForceDirty()) {
+            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || isForceDirty) {
+                console.time('!!!viewMain_render!!!_111');
+                if (isDirty || isForceDirty || this.isForceDirty()) {
 
 
                     this._cacheCanvas.clear();
@@ -396,18 +394,19 @@ export class Spreadsheet extends SheetComponent {
                 this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
 
                 // this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
-                console.timeEnd('!!!viewMain_render_111');
+                console.timeEnd('!!!viewMain_render!!!_111');
             } else {
                 // 一直 true 的话，会有残影出现
-
-                console.time('!!!viewMain_render_222');
+                console.log('!!!viewMain_render!!!_222, diffBounds', diffBounds, diffX, diffY, isDirty)
+                console.time('!!!viewMain_render!!!_222');
                 // if (this.isViewPortDirty(viewPortKey)) {
-                if( isDirty ){
+                if( isDirty || 1){
                     // console.time('viewMainscroll');
 
                     cacheCtx.save();
                     cacheCtx.setTransform(1, 0, 0, 1, 0, 0);
                     cacheCtx.globalCompositeOperation = 'copy';
+                    cacheCtx.imageSmoothingEnabled = false;// 关闭抗锯齿  没有斜向图形不需要抗锯齿
 
                     cacheCtx.drawImage(this._cacheCanvas.getCanvasEle(), diffX * scaleX, diffY * scaleY);
                     // const imageData = cacheCtx.getImageData(0, 0, this._cacheCanvas.getCanvasEle().width, this._cacheCanvas.getCanvasEle().height);
@@ -418,6 +417,7 @@ export class Spreadsheet extends SheetComponent {
                     this._refreshIncrementalState = true;
                     cacheCtx.setTransform(mainCtx.getTransform());
 
+                    console.time('!!!viewMain_render_222---222');
                     for (const diffBound of diffBounds) {
                         const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
                         cacheCtx.save();
@@ -431,8 +431,7 @@ export class Spreadsheet extends SheetComponent {
 
                         cacheCtx.clip();
                         // cacheCtx.fill();
-                        console.time('!!!viewMain_render_333');
-                        console.log('diff bound 333', diffX, diffBound.left - diffBound.right);
+                        // 222---222 关键耗时在这里
                         this._draw(cacheCtx, {
                             viewBound: bounds.viewBound,
                             diffBounds: [diffBound],
@@ -441,34 +440,31 @@ export class Spreadsheet extends SheetComponent {
                             viewPortPosition: bounds.viewPortPosition,
                             viewPortKey: bounds.viewPortKey,
                         });
-                        console.timeEnd('!!!viewMain_render_333');
                         cacheCtx.restore();
                     }
+                    console.timeEnd('!!!viewMain_render_222---222');
 
                     this._refreshIncrementalState = false;
-                    // console.timeEnd('viewMainscroll');
-
                 }
                 this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
                 // this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
-                console.timeEnd('!!!viewMain_render_222');
+                console.timeEnd('!!!viewMain_render!!!_222');
 
             }
             cacheCtx.restore();
         } else {
-            console.time(`${viewPortKey}_render!!!`)
+            // console.time(`${viewPortKey}_render!!!`)
             const cacheCtx = this._cacheCanvasMap.get(viewPortKey)!.getContext();
             cacheCtx.save();
             const { left, top, right, bottom } = viewPortPosition;
             const dw = right - left + rowHeaderWidth;
             const dh = bottom - top + columnHeaderHeight;
 
-            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0)) {
+            if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || isForceDirty) {
                 console.time(`${viewPortKey}_render!!!_111`);
-                console.log('!!!viewMainTop_render_111', diffBounds, diffX, this.isDirty(), this.isForceDirtyByViewMap(viewPortKey));
                 // console.log('!!!renderByViewPort', this.isDirty(), this.isForceDirty(), this.isViewPortDirty(viewPortKey))
                 // if (this.isViewPortDirty(viewPortKey) || this.isForceDirty()) {
-                if (this.isDirty() || this.isForceDirty()) {
+                if (isDirty || isForceDirty || this.isForceDirty()) {
                     this._cacheCanvasMap.get(viewPortKey)!.clear();
                     cacheCtx.setTransform(mainCtx.getTransform());
                     // bounds.viewBound.top -= 20;
@@ -481,8 +477,8 @@ export class Spreadsheet extends SheetComponent {
                 console.timeEnd(`${viewPortKey}_render!!!_111`);
             } else {
                 // if (this.isViewPortDirty(viewPortKey)) {
-                if(isDirty){
-                    console.time('viewMainTop_diff')
+                if(isDirty || 1){
+                    // console.time('viewMainTop_diff')
                     cacheCtx.save();
                     cacheCtx.setTransform(1, 0, 0, 1, 0, 0);
                     cacheCtx.globalCompositeOperation = 'copy';
@@ -512,15 +508,12 @@ export class Spreadsheet extends SheetComponent {
                         });
                         cacheCtx.restore();
                     }
-                    console.timeEnd('viewMainTop_diff')
 
                     this._refreshIncrementalState = false;
                 }
-                console.log('viewPortKey', viewPortKey, left, top, dw, dh, left, top, dw, dh);
                 this._applyCacheFreeze(mainCtx, this._cacheCanvasMap.get(viewPortKey)!, left, top, dw, dh, left, top, dw, dh);
             }
             cacheCtx.restore();
-            console.timeEnd(`${viewPortKey}_render!!!`)
         }
 
 
@@ -648,7 +641,7 @@ export class Spreadsheet extends SheetComponent {
         // console.timeEnd('!!!viewMainLeft_render');
     }
 
-    override render(mainCtx: UniverRenderingContext, bounds: IViewportBound, isDirty?: boolean) {
+    override render(mainCtx: UniverRenderingContext, bounds: IViewportBound) {
         if (!this.visible) {
             this.makeDirty(false);
             return this;
@@ -681,9 +674,9 @@ export class Spreadsheet extends SheetComponent {
 
         const { viewPortKey } = bounds;
         if (bounds && this._allowCache === true) {
-            console.time('!!!renderByViewport');
-            this.renderByViewport(mainCtx, bounds, isDirty, spreadsheetSkeleton);
-            console.timeEnd('!!!renderByViewport');
+            // console.time('!!!renderByViewport');
+            this.renderByViewport(mainCtx, bounds, spreadsheetSkeleton);
+            // console.timeEnd('!!!renderByViewport');
 
         } else {
             this._draw(mainCtx, bounds);
@@ -790,16 +783,16 @@ export class Spreadsheet extends SheetComponent {
         );
         mainCtx.restore();
         cacheCtx.restore();
-        // @ts-ignore
-        if(!window.cacheImg) {
-            // @ts-ignore
-            window.cacheImg = cacheCtx.canvas.toDataURL();
-        }
-        // @ts-ignore
-        if(!window.mainImg) {
-            // @ts-ignore
-            window.mainImg = mainCtx.canvas.toDataURL();
-        }
+        // // @ts-ignore
+        // if(!window.cacheImg) {
+        //     // @ts-ignore
+        //     window.cacheImg = cacheCtx.canvas.toDataURL();
+        // }
+        // // @ts-ignore
+        // if(!window.mainImg) {
+        //     // @ts-ignore
+        //     window.mainImg = mainCtx.canvas.toDataURL();
+        // }
     }
 
     protected override _draw(ctx: UniverRenderingContext, bounds?: IViewportBound) {

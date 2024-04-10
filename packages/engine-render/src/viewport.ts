@@ -77,9 +77,8 @@ const MOUSE_WHEEL_SPEED_SMOOTHING_FACTOR = 3;
 
 export class Viewport {
     /**
-     * The offset of the scrollbar equals the distance from the top to the scrollbar
-     * use getActualScroll, convert to actualScrollX, actualScrollY
-     *
+     * scrollX means scroll x value for scrollbar in viewMain
+     * use getBarScroll to get scrolling value(scrollX, scrollY) for scrollbar
      */
     scrollX: number = 0;
 
@@ -87,7 +86,7 @@ export class Viewport {
 
     /**
      * The actual scroll offset equals the distance from the content area position to the top, and there is a conversion relationship with scrollX and scrollY
-     * use getBarScroll, convert to scrollX, scrollY
+     * use getActualScroll to get scrolling value for spreadsheet.
      */
     actualScrollX: number = 0;
 
@@ -196,6 +195,15 @@ export class Viewport {
         this._isWheelPreventDefaultY = props?.isWheelPreventDefaultY || false;
 
         this._resizeCacheCanvasAndScrollBar();
+        //@ts-ignore
+        if(!window.viewport) {
+            //@ts-ignore
+            window.viewport = {}
+        }
+        //@ts-ignore
+        window.viewport[viewPortKey] = this;
+        //@ts-ignore
+        console.log(window.viewport[viewPortKey])
     }
 
     get scene() {
@@ -482,6 +490,10 @@ export class Viewport {
         };
     }
 
+    /**
+     * get actual scroll value by scrollXY
+     * @returns
+     */
     getTransformedScroll() {
         const x = this.scrollX;
         const y = this.scrollY;
@@ -558,19 +570,26 @@ export class Viewport {
         ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
 
         let viewBound = this._calViewportRelativeBounding();
-        // 每次 loop mainCtx 都会被清空 因此不可以越过某一个 viewport 的 render
-        // if(this.isDirty){
-            objects.forEach((o) => {
-                o.render(ctx, viewBound, this.isDirty);
-            });
-            if(isLast) {
-                objects.forEach((o) => {
-                    o.makeDirty(false);
-                    o.makeForceDirty?.(false);
-                });
-            }
-            this.makeDirty(false);
+
+        // 逻辑不对 上面的方法已经获取了 isDirty
+        // const { diffX, diffY, diffBounds } = viewBound;
+        // if(diffBounds.length !== 0 && (diffX !== 0 || diffY !== 0)){
+        //     // this.makeDirty()
         // }
+
+        // 每次 loop mainCtx 都会被清空 因此不可以越过某一个 viewport 的 render
+        // if(this.isDirty){}
+        objects.forEach((o) => {
+            o.render(ctx, viewBound);
+        });
+        if(isLast) {
+            objects.forEach((o) => {
+                o.makeDirty(false);
+                o.makeForceDirty?.(false);
+            });
+        }
+        this.makeDirty(false);
+        this.makeForceDirty(false);
         ctx.restore();
 
         if (this._scrollBar && isMaxLayer) {
@@ -787,10 +806,33 @@ export class Viewport {
         } else {
             this._isDirty = true;
         }
+
+        if(this._isDirty && this.viewPortKey === 'viewMain') {
+            //debugger
+            // console.trace()
+        }
+
+        if(this._isDirty && this.viewPortKey === 'viewMainTop') {
+            //debugger
+            console.log()
+        }
     }
 
     get isDirty() {
         return this._isDirty;
+    }
+
+    private _isForceDirty = true;
+    makeForceDirty(state?: boolean) {
+        if(state !== undefined) {
+            this._isForceDirty = state;
+        } else {
+            this._isForceDirty = true;
+        }
+    }
+
+    get isForceDirty() {
+        return this._isForceDirty;
     }
 
     private _resizeCacheCanvasAndScrollBar() {
@@ -903,6 +945,8 @@ export class Viewport {
 
     /**
      * 只有 viewMain 会进入此函数  其他 viewport 不会
+     * 滚动事件处理函数
+     * 调用方 scroll.controller viewportMain.proscrollTo(config)
      * @param scrollType
      * @param pos
      * @param isTrigger
@@ -910,7 +954,6 @@ export class Viewport {
      */
     private _scroll(scrollType: SCROLL_TYPE, pos: IScrollBarPosition, isTrigger = true) {
         const { x, y } = pos;
-
         if (this._scrollBar == null) {
             return;
         }
@@ -941,6 +984,17 @@ export class Viewport {
 
         const limited = this.limitedScroll(); // 限制滚动范围
 
+        // 即使只移动垂直滚动条  x 也存在变化 不合理
+        // if(y !== undefined || x !== undefined) {
+        //     this.makeDirty();
+        // }
+        // if(y !== undefined) {
+        //     this.scene.getViewports().filter((vp:Viewport) => vp.viewPortKey === 'viewMainLeft').forEach((vp: Viewport) => vp.makeDirty());
+        // }
+        if(x !== undefined) {
+            // this.scene.getViewports().filter((vp:Viewport) => vp.viewPortKey === 'viewMainTop').forEach((vp: Viewport) => vp.makeDirty());
+        }
+        // this.scene.getViewports().forEach(vp => vp.makeDirty());
         this.onScrollBeforeObserver.notifyObservers({
             viewport: this,
             scrollX: this.scrollX,
@@ -952,17 +1006,6 @@ export class Viewport {
             isTrigger,
         });
 
-        this.makeDirty();
-
-
-        // if(this.viewPortKey === 'viewMain') {
-        // }
-        if(this.scrollY !== 0) {
-            this.scene.getViewports().filter((vp:Viewport) => vp.viewPortKey === 'viewMainLeft').forEach((vp: Viewport) => vp.makeDirty());
-        }
-        if(this.scrollX !== 0) {
-            this.scene.getViewports().filter((vp:Viewport) => vp.viewPortKey === 'viewMainTop').forEach((vp: Viewport) => vp.makeDirty());
-        }
 
         if (this._scrollBar) {
             this._scrollBar.makeDirty(true);
@@ -1009,6 +1052,8 @@ export class Viewport {
                     right: 0,
                 },
                 viewPortKey: this.viewPortKey,
+                isDirty: this.isDirty,
+                isForceDirty: this.isForceDirty,
             };
         }
 
@@ -1091,6 +1136,8 @@ export class Viewport {
                 right: xTo,
             },
             viewPortKey: this.viewPortKey,
+            isDirty: this.isDirty,
+            isForceDirty: this.isForceDirty,
         };
     }
 

@@ -855,6 +855,8 @@ export interface IViewportBound {
     diffY: number;
     viewPortPosition: IBoundRectNoAngle;
     viewPortKey: string;
+    isDirty?: boolean;
+    isForceDirty?: boolean;
 }
 
 

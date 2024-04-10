@@ -92,6 +92,10 @@ export class Scene extends ThinScene {
                 })
             )
         );
+        // @ts-ignore
+        if(!window.scene) { window.scene = {}};
+        // @ts-ignore
+        window.scene[sceneKey] = this;
     }
 
     get ancestorScaleX() {
@@ -493,7 +497,7 @@ export class Scene extends ThinScene {
             return;
         }
 
-        !parentCtx && this.getEngine()?.clearCanvas();
+        !parentCtx    && this.getEngine()?.clearCanvas();
 
         const layers = this._layers.sort(sortRules);
 
