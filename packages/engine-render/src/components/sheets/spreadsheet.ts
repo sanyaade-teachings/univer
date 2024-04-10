@@ -107,13 +107,16 @@ export class Spreadsheet extends SheetComponent {
 
                 (parent as Scene)?.getViewports().forEach(vp => vp.makeDirty());
                 // @ts-ignore
-                // window.scene = parent;
+                window.scene = parent;
 
             });
         }
 
         this._initialDefaultExtension();
         this.makeDirty(true);
+
+        // @ts-ignore
+        window.spreadsheet = this;
     }
 
     setViewports(viewports: Viewport[]) {
@@ -396,8 +399,8 @@ export class Spreadsheet extends SheetComponent {
                 // this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
                 console.timeEnd('!!!viewMain_render!!!_111');
             } else {
-                // 一直 true 的话，会有残影出现
-                console.log('!!!viewMain_render!!!_222, diffBounds', diffBounds, diffX, diffY, isDirty)
+                // diffX diffY 可以是小数
+                console.log('!!!viewMain_render!!!_222, diffBounds', diffX, diffY, isDirty)
                 console.time('!!!viewMain_render!!!_222');
                 // if (this.isViewPortDirty(viewPortKey)) {
                 if( isDirty || 1){
@@ -476,12 +479,11 @@ export class Spreadsheet extends SheetComponent {
                 this._applyCacheFreeze(mainCtx, this._cacheCanvasMap.get(viewPortKey)!, left, top, dw, dh, left, top, dw, dh);
                 console.timeEnd(`${viewPortKey}_render!!!_111`);
             } else {
-                // if (this.isViewPortDirty(viewPortKey)) {
                 if(isDirty || 1){
-                    // console.time('viewMainTop_diff')
                     cacheCtx.save();
                     cacheCtx.setTransform(1, 0, 0, 1, 0, 0);
                     cacheCtx.globalCompositeOperation = 'copy';
+                    cacheCtx.imageSmoothingEnabled = false;// 关闭抗锯齿  没有斜向图形不需要抗锯齿
                     cacheCtx.drawImage(this._cacheCanvasMap.get(viewPortKey)!.getCanvasEle(), diffX * scaleX, diffY * scaleY);
                     cacheCtx.restore();
 
@@ -515,130 +517,6 @@ export class Spreadsheet extends SheetComponent {
             }
             cacheCtx.restore();
         }
-
-
-        // console.time('!!!viewMainLeftTop_render');
-        // if(viewPortKey === 'viewMainLeftTop') {
-        //     const cacheCtxLeftTop = this._cacheCanvasLeftTop.getContext();
-        //     cacheCtxLeftTop.save();
-        //     const { left, top, right, bottom } = viewPortPosition;
-        //     const dw = right - left + rowHeaderWidth;
-        //     const dh = bottom - top + columnHeaderHeight;
-
-        //     if (diffBounds.length === 0 || (diffX === 0 && diffY === 0)) {
-        //         // if (this.isViewPortDirty(viewPortKey) || this.isForceDirty()) {
-        //             if (this.isDirty() || this.isForceDirty()) {
-        //             this._cacheCanvasLeftTop.clear();
-        //             cacheCtxLeftTop.setTransform(mainCtx.getTransform());
-        //             this._draw(cacheCtxLeftTop, bounds);
-
-        //             // this._forceDirty = false;
-        //             this._forceDirtyByViewport[viewPortKey] = false;
-        //         }
-        //         this._applyCacheFreeze(mainCtx, this._cacheCanvasLeftTop, left, top, dw, dh, left, top, dw, dh);
-        //     } else {
-        //         // if (this.isViewPortDirty(viewPortKey)) {
-        //         // if( this.isDirty()){
-        //             cacheCtxLeftTop.save();
-        //             cacheCtxLeftTop.setTransform(1, 0, 0, 1, 0, 0);
-        //             cacheCtxLeftTop.globalCompositeOperation = 'copy';
-        //             cacheCtxLeftTop.drawImage(this._cacheCanvasLeftTop.getCanvasEle(), diffX * scaleX, diffY * scaleY);
-        //             cacheCtxLeftTop.restore();
-
-        //             this._refreshIncrementalState = true;
-        //             cacheCtxLeftTop.setTransform(mainCtx.getTransform());
-        //             for (const diffBound of diffBounds) {
-        //                 const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
-        //                 cacheCtxLeftTop.save();
-        //                 cacheCtxLeftTop.beginPath();
-        //                 const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-        //                 const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-        //                 const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-        //                 const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-        //                 cacheCtxLeftTop.rectByPrecision(x, y, w, h);
-
-        //                 cacheCtxLeftTop.clip();
-        //                 this._draw(cacheCtxLeftTop, {
-        //                     viewBound: bounds.viewBound,
-        //                     diffBounds: [diffBound],
-        //                     diffX: bounds.diffX,
-        //                     diffY: bounds.diffY,
-        //                     viewPortPosition: bounds.viewPortPosition,
-        //                     viewPortKey: bounds.viewPortKey,
-        //                 });
-        //                 cacheCtxLeftTop.restore();
-        //             }
-
-        //             this._refreshIncrementalState = false;
-        //         // }
-        //         this._applyCacheFreeze(mainCtx, this._cacheCanvasLeftTop, left, top, dw, dh, left, top, dw, dh);
-        //     }
-        //     cacheCtxLeftTop.restore();
-        // }
-        // console.timeEnd('!!!viewMainLeftTop_render');
-
-
-        // console.time('!!!viewMainLeft_render');
-        // if(viewPortKey === 'viewMainLeft') {
-        //     const cacheCtxLeft = this._cacheCanvasLeft.getContext();
-        //     cacheCtxLeft.save();
-        //     const { left, top, right, bottom } = viewPortPosition;
-        //     const dw = right - left + rowHeaderWidth;
-        //     const dh = bottom - top + columnHeaderHeight;
-
-        //     if (diffBounds.length === 0 || (diffX === 0 && diffY === 0)) {
-        //         // if (this.isViewPortDirty(viewPortKey) || this.isForceDirty()) {
-        //         console.time('!!!viewMainLeft_render_111');
-        //         if (this.isDirty() || this.isForceDirty()) {
-        //             this._cacheCanvasLeft.clear();
-        //             cacheCtxLeft.setTransform(mainCtx.getTransform());
-        //             this._draw(cacheCtxLeft, bounds);
-
-        //             // this._forceDirty = false;
-        //             this._forceDirtyByViewport[viewPortKey] = false;
-        //         }
-        //         this._applyCacheFreeze(mainCtx, this._cacheCanvasLeft, left, top, dw, dh, left, top, dw, dh);
-        //         console.timeEnd('!!!viewMainLeft_render_111');
-        //     } else {
-        //         // if (this.isViewPortDirty(viewPortKey)) {
-        //         // if( this.isDirty()){
-        //             cacheCtxLeft.save();
-        //             cacheCtxLeft.setTransform(1, 0, 0, 1, 0, 0);
-        //             cacheCtxLeft.globalCompositeOperation = 'copy';
-        //             cacheCtxLeft.drawImage(this._cacheCanvasLeft.getCanvasEle(), diffX * scaleX, diffY * scaleY);
-        //             cacheCtxLeft.restore();
-
-        //             this._refreshIncrementalState = true;
-        //             cacheCtxLeft.setTransform(mainCtx.getTransform());
-        //             for (const diffBound of diffBounds) {
-        //                 const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
-        //                 cacheCtxLeft.save();
-        //                 cacheCtxLeft.beginPath();
-        //                 const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-        //                 const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-        //                 const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-        //                 const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-        //                 cacheCtxLeft.rectByPrecision(x, y, w, h);
-
-        //                 cacheCtxLeft.clip();
-        //                 this._draw(cacheCtxLeft, {
-        //                     viewBound: bounds.viewBound,
-        //                     diffBounds: [diffBound],
-        //                     diffX: bounds.diffX,
-        //                     diffY: bounds.diffY,
-        //                     viewPortPosition: bounds.viewPortPosition,
-        //                     viewPortKey: bounds.viewPortKey,
-        //                 });
-        //                 cacheCtxLeft.restore();
-        //             }
-
-        //             this._refreshIncrementalState = false;
-        //         // }
-        //         this._applyCacheFreeze(mainCtx, this._cacheCanvasLeft, left, top, dw, dh, left, top, dw, dh);
-        //     }
-        //     cacheCtxLeft.restore();
-        // }
-        // console.timeEnd('!!!viewMainLeft_render');
     }
 
     override render(mainCtx: UniverRenderingContext, bounds: IViewportBound) {

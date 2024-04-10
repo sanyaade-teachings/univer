@@ -29,6 +29,7 @@ import type { UniverRenderingContext } from './context';
 import type { BaseScrollBar } from './shape/base-scroll-bar';
 import type { ThinScene } from './thin-scene';
 import { subtractViewportRange } from './basics/viewport-subtract';
+import { Scene } from './scene';
 
 interface IViewPosition {
     top?: number;
@@ -203,7 +204,7 @@ export class Viewport {
         //@ts-ignore
         window.viewport[viewPortKey] = this;
         //@ts-ignore
-        console.log(window.viewport[viewPortKey])
+        console.log('viewport constructor', viewPortKey, window.viewport[viewPortKey])
     }
 
     get scene() {
@@ -361,6 +362,8 @@ export class Viewport {
     }
 
     /**
+     *
+     * 改动 scrollbar 的位置，不是 viewport content 滚动
      * scroll to position, absolute
      * 只有 viewMain 才会被调用 scrollTo 其他 viewport 都不会调用此方法
      * 具体在 scroll.controller 中
@@ -482,7 +485,7 @@ export class Viewport {
             }
         }
 
-        const { scaleX, scaleY } = this._scene.getPrecisionScale();
+        const { scaleX, scaleY } = (this._scene as Scene).getPrecisionScale();
 
         return {
             x: fixLineWidthByScale(x + this._paddingStartX, scaleX),
