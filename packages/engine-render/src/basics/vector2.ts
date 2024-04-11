@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { Viewport } from '..';
 import type { DeepImmutable, FloatArray } from './i-events';
 
 export interface IPoint {
@@ -870,6 +871,9 @@ export interface IViewportBound {
     cacheBounds: IBoundRectNoAngle;
     diffCacheBounds: IBoundRectNoAngle[];
     cacheViewPortPosition: IBoundRectNoAngle;
+
+    vp?: Viewport;
+    nearEdge: boolean;
 }
 
 export interface IViewportBounds {

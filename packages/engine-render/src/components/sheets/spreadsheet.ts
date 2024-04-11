@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-const BUFFER_EDGE_SIZE = 500;
+const BUFFER_EDGE_SIZE = 100; // TODO viewport 中还有一处
 import type { IRange, ISelectionCellWithCoord, Nullable } from '@univerjs/core';
 import { BooleanNumber, ObjectMatrix, sortRules } from '@univerjs/core';
 
@@ -98,10 +98,10 @@ export class Spreadsheet extends SheetComponent {
 
             this.onIsAddedToParentObserver.add((parent) => {
                 (parent as Scene)?.getEngine()?.onTransformChangeObservable.add(() => {
-                    console.log('onTransformChangeObservable resize');
+                    // console.log('onTransformChangeObservable resize');
                     this._resizeCacheCanvas();
                 });
-                console.log('onIsAddedToParentObserver resize');
+                // console.log('onIsAddedToParentObserver resize');
                 this._resizeCacheCanvas();
                 this._addMakeDirtyToScroll();
 
@@ -150,7 +150,7 @@ export class Spreadsheet extends SheetComponent {
             cacheCanvas.getCanvasEle().style.border = '1px solid black'; // 设置边框样式
             cacheCanvas.getCanvasEle().style.transformOrigin = '40% 50%';
             cacheCanvas.getCanvasEle().style.transform = 'scale(0.5)';
-            cacheCanvas.getCanvasEle().style.opacity = '0.8';
+            // cacheCanvas.getCanvasEle().style.opacity = '0.9';
             document.body.appendChild(cacheCanvas.getCanvasEle());
         }
         showCache(this._cacheCanvas);
@@ -321,22 +321,21 @@ export class Spreadsheet extends SheetComponent {
         // return this;
     }
 
-    tickTime() {
-        //@ts-ignore
-        if(!window.lastTime) {
-            //@ts-ignore
-            window.lastTime = +new Date;
-        } else {
-            //@ts-ignore
-            console.log('time', +new Date - window.lastTime);
-            //@ts-ignore
-            window.lastTime = +new Date;
-        }
-
-    }
+    // tickTime() {
+    //     //@ts-ignore
+    //     if(!window.lastTime) {
+    //         //@ts-ignore
+    //         window.lastTime = +new Date;
+    //     } else {
+    //         //@ts-ignore
+    //         console.log('time', +new Date - window.lastTime);
+    //         //@ts-ignore
+    //         window.lastTime = +new Date;
+    //     }
+    // }
 
     renderByViewport(mainCtx: UniverRenderingContext, viewportBoundsInfo: IViewportBound, spreadsheetSkeleton: SpreadsheetSkeleton) {
-        const { viewBound, cacheBounds,  diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty } = viewportBoundsInfo;
+        const { viewBound, cacheBounds,  diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, nearEdge } = viewportBoundsInfo;
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
         mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
@@ -369,13 +368,11 @@ export class Spreadsheet extends SheetComponent {
                     // this._forceDirty = false;
                     // this._forceDirtyByViewport[viewPortKey] = false;
                 }
-                // this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
-
-                // this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
+                this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
                 console.timeEnd('!!!viewMain_render!!!_111');
             } else {
                 // diffX diffY 可以是小数
-                console.log('!!!viewMain_render!!!_222, diffBounds', diffX, diffY, isDirty)
+                // console.log('!!!viewMain_render!!!_222, diffBounds', diffX, diffY, isDirty)
                 console.time('!!!viewMain_render!!!_222');
                 // if (this.isViewPortDirty(viewPortKey)) {
                 if( isDirty || 1){
@@ -387,9 +384,7 @@ export class Spreadsheet extends SheetComponent {
                     cacheCtx.imageSmoothingEnabled = false;// 关闭抗锯齿  没有斜向图形不需要抗锯齿
 
                     cacheCtx.drawImage(this._cacheCanvas.getCanvasEle(), diffX * scaleX, diffY * scaleY);
-                    // const imageData = cacheCtx.getImageData(0, 0, this._cacheCanvas.getCanvasEle().width, this._cacheCanvas.getCanvasEle().height);
-                    // cacheCtx.clearRect(0, 0, this._cacheCanvas.getCanvasEle().width, this._cacheCanvas.getCanvasEle().height);
-                    // cacheCtx.putImageData(imageData, diffX * scaleX, diffY * scaleY);
+
                     cacheCtx.restore();
 
                     this._refreshIncrementalState = true;
@@ -398,6 +393,7 @@ export class Spreadsheet extends SheetComponent {
                     console.time('!!!viewMain_render_222---222');
                     // cacheCtx.clearRect(0, 0, cacheCtx.canvas.width, cacheCtx.canvas.height);
                     console.log('bounds compare', viewBound, cacheBounds);
+
                     // for (const diffBound of diffCacheBounds) {
                         // const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
                         // cacheCtx.save();
@@ -413,25 +409,28 @@ export class Spreadsheet extends SheetComponent {
                         // cacheCtx.fill();
                         // 222---222 关键耗时在这里
                         //@ts-ignore
-                        this._draw(cacheCtx, {
-                            // viewBound 是这一帧的区域
-                            viewBound: viewportBoundsInfo.cacheBounds,
-                            diffBounds: diffCacheBounds,
-                            diffX: viewportBoundsInfo.diffX,
-                            diffY: viewportBoundsInfo.diffY,
-                            viewPortPosition: viewportBoundsInfo.viewPortPosition,
-                            viewPortKey: viewportBoundsInfo.viewPortKey,
-                        });
+                        if(nearEdge) {
+                            console.log('%c viewMain 222-222 draw', 'background-color: red; color: white;');
+                            //@ts-ignore
+                            this._draw(cacheCtx, {
+                                // viewBound 是这一帧的区域
+                                viewBound: viewportBoundsInfo.cacheBounds,
+                                diffBounds: diffCacheBounds,
+                                diffX: viewportBoundsInfo.diffX,
+                                diffY: viewportBoundsInfo.diffY,
+                                viewPortPosition: viewportBoundsInfo.viewPortPosition,
+                                viewPortKey: viewportBoundsInfo.viewPortKey,
+                            });
+                        }
                         cacheCtx.restore();
                     // }
                     console.timeEnd('!!!viewMain_render_222---222');
                     this._refreshIncrementalState = false;
                 }
-                // this._applyCacheFreeze(mainCtx, this._cacheCanvas, left + BUFFER_EDGE_SIZE, top + BUFFER_EDGE_SIZE, dw, dh, left, top, dw, dh);
+                this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
                 console.timeEnd('!!!viewMain_render!!!_222');
 
             }
-            this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
             cacheCtx.restore();
         } else {
             // console.time(`${viewPortKey}_render!!!`)

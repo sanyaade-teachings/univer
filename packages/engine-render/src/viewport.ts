@@ -75,7 +75,7 @@ enum SCROLL_TYPE {
 }
 
 const MOUSE_WHEEL_SPEED_SMOOTHING_FACTOR = 3;
-const BUFFER_EDGE_SIZE = 500;
+const BUFFER_EDGE_SIZE = 100;
 export class Viewport {
     /**
      * scrollX means scroll x value for scrollbar in viewMain
@@ -161,6 +161,13 @@ export class Viewport {
      * viewbound of cache area, cache area is slightly bigger than viewbound.
      */
     private _cacheBound: {
+        left: number,
+        top: number,
+        right: number,
+        bottom: number,
+    } | null = null;
+
+    private _prevCacheBound: {
         left: number,
         top: number,
         right: number,
@@ -600,6 +607,7 @@ export class Viewport {
         // 每次 loop mainCtx 都会被清空 因此不可以越过某一个 viewport 的 render
         // if(this.isDirty){}
         objects.forEach((o) => {
+            viewPortBound.vp = this;
             o.render(ctx, viewPortBound);
         });
         if(isLast) {
@@ -1157,8 +1165,10 @@ export class Viewport {
 
         const preViewBound = this._preViewportBound?.viewBound;
         const diffBounds = this._diffViewBound(viewBound, preViewBound);
-        const cacheBounds = this._cacheBound ? this._cacheBound : this.expandBounds(viewBound);
-        const prevCacheBounds = this.getCacheBounds();
+        const diffX = (preViewBound?.left || 0) - viewBound.left;
+        const diffY = (preViewBound?.top || 0) - viewBound.top;
+        let cacheBounds = this.initCacheBounds(viewBound);
+        const prevCacheBounds = this._prevCacheBound;
         const diffCacheBounds = this._diffViewBound(cacheBounds, prevCacheBounds);
         const viewPortPosition = {
             top: yFrom,
@@ -1167,11 +1177,23 @@ export class Viewport {
             right: xTo,
         };
         const cacheViewPortPosition = this.expandBounds(viewPortPosition);
+        const nearEdge = diffX < 0 && Math.abs(viewBound.right - cacheBounds.right) < BUFFER_EDGE_SIZE/3 ||
+        diffX > 0 && Math.abs(viewBound.left - cacheBounds.left) < BUFFER_EDGE_SIZE/3 ||
+        // 滚动条向上, 向上往回滚
+        diffY > 0 && Math.abs(viewBound.top - cacheBounds.top) < BUFFER_EDGE_SIZE/3 ||
+        // 滚动条向下, 让更多下方的内容呈现到 spread 中,
+        diffY < 0 &&Math.abs(viewBound.bottom - cacheBounds.bottom) < BUFFER_EDGE_SIZE/3;
+        if(nearEdge) {
+            cacheBounds = this.expandBounds(viewBound);
+            this._prevCacheBound = this._cacheBound;
+            this._cacheBound = cacheBounds;
+            console.log('!!!update cacheBounds', cacheBounds)
+        }
         return {
             viewBound,
             diffBounds,
-            diffX: (preViewBound?.left || 0) - viewBound.left,
-            diffY: (preViewBound?.top || 0) - viewBound.top,
+            diffX,
+            diffY,
             viewPortPosition,
             viewPortKey: this.viewPortKey,
             isDirty: this.isDirty,
@@ -1179,6 +1201,7 @@ export class Viewport {
             cacheBounds,
             diffCacheBounds,
             cacheViewPortPosition,
+            nearEdge,
 
         }  satisfies IViewportBound;;
     }
@@ -1192,23 +1215,20 @@ export class Viewport {
         }
     }
 
-    getCacheBounds(viewBound?:IBoundRectNoAngle) {
-        if(!this._cacheBound){
-            if(viewBound) {
-                return this.expandBounds(viewBound);
-            }
-            if(this._preViewportBound) {
-                return this.expandBounds(this._preViewportBound?.viewBound);
-            }
-            return {
-                left: -1,
-                top: -1,
-                right: -1,
-                bottom: -1,
-            };
+    initCacheBounds(viewBound:IBoundRectNoAngle) {
+        if(!this._cacheBound) {
+            this._cacheBound = viewBound;
+            return this._cacheBound;
         }
         return this._cacheBound;
+    }
 
+    updateCacheBounds(viewBound?:IBoundRectNoAngle) {
+        if(viewBound) {
+            this._cacheBound = this.expandBounds(viewBound);
+        } else if(this._preViewportBound){
+            this._cacheBound = this.expandBounds(this._preViewportBound?.viewBound);
+        }
     }
 
     private _diffViewBound(mainBound: IBoundRectNoAngle, subBound: Nullable<IBoundRectNoAngle>) {
