@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+const BUFFER_EDGE_SIZE = 500;
 import type { IRange, ISelectionCellWithCoord, Nullable } from '@univerjs/core';
 import { BooleanNumber, ObjectMatrix, sortRules } from '@univerjs/core';
 
@@ -59,7 +59,7 @@ export class Spreadsheet extends SheetComponent {
     private _refreshIncrementalState = false;
 
     private _forceDirty = false;
-    private _forceDirtyByViewport: Record<string, boolean> = {};
+    // private _forceDirtyByViewport: Record<string, boolean> = {};
         // 无法导入
         // VIEWPORT_KEY.VIEW_MAIN: false,
         // VIEWPORT_KEY.VIEW_MAIN_TOP: false,
@@ -114,16 +114,17 @@ export class Spreadsheet extends SheetComponent {
 
         this._initialDefaultExtension();
         this.makeDirty(true);
+        this.setViewports([]);
 
         // @ts-ignore
         window.spreadsheet = this;
     }
 
     setViewports(viewports: Viewport[]) {
-        viewports.forEach( v => {
-            this._forceDirtyByViewport[v.viewPortKey] = false;
-            this.viewportDirty.set(v.viewPortKey, true);
-        })
+        // viewports.forEach( v => {
+        //     this._forceDirtyByViewport[v.viewPortKey] = false;
+        //     this.viewportDirty.set(v.viewPortKey, true);
+        // })
         this._cacheCanvasMap.set('viewMain', this._cacheCanvas);
         this._cacheCanvasMap.set('viewMainTop', this._cacheCanvasTop);
         this._cacheCanvasMap.set('viewMainLeft', this._cacheCanvasLeft);
@@ -144,19 +145,15 @@ export class Spreadsheet extends SheetComponent {
         const showCache = (cacheCanvas: typeof this._cacheCanvas) => {
             cacheCanvas.getCanvasEle().style.zIndex = '100';
             cacheCanvas.getCanvasEle().style.position = 'fixed';
-            cacheCanvas.getCanvasEle().style.right = '0px';
-            cacheCanvas.getCanvasEle().style.bottom = '0px';
-            // cacheCanvas.getCanvasEle().style.top = '660px';
             cacheCanvas.getCanvasEle().style.background = 'pink';
             cacheCanvas.getCanvasEle().style.pointerEvents = 'none'; // 禁用事件响应
             cacheCanvas.getCanvasEle().style.border = '1px solid black'; // 设置边框样式
-            cacheCanvas.getCanvasEle().style.transformOrigin = 'bottom right';
+            cacheCanvas.getCanvasEle().style.transformOrigin = '40% 50%';
             cacheCanvas.getCanvasEle().style.transform = 'scale(0.5)';
-            cacheCanvas.getCanvasEle().style.right = '0px';
-            cacheCanvas.getCanvasEle().style.bottom = '0px';
+            cacheCanvas.getCanvasEle().style.opacity = '0.8';
             document.body.appendChild(cacheCanvas.getCanvasEle());
         }
-        showCache(this._cacheCanvasTop);
+        showCache(this._cacheCanvas);
     }
 
     get backgroundExtension() {
@@ -270,15 +267,15 @@ export class Spreadsheet extends SheetComponent {
         return this._forceDirty;
     }
 
-    isForceDirtyByViewMap(viewPortKey: string){
-        return this._forceDirtyByViewport[viewPortKey];
-    }
+    // isForceDirtyByViewMap(viewPortKey: string){
+    //     return this._forceDirtyByViewport[viewPortKey];
+    // }
 
     /**
      * 页面初始化和调整冻结行列会用到
      * @param viewPortKey
      */
-    makeForceDirtyByViewMap(viewPortKey?: string){
+    // makeForceDirtyByViewMap(viewPortKey?: string){
         // return this._forceDirtyByViewport[viewPortKey];
 
         // if(!viewPortKey) {
@@ -289,17 +286,14 @@ export class Spreadsheet extends SheetComponent {
         // } else {
         //     this._forceDirtyByViewport[viewPortKey] = true;
         // }
-    }
+    // }
 
     /**
      * canvas resize & zoom
      * @param state
      */
     makeForceDirty(state = true) {
-        // this.makeDirty(state);
-        console.log('!!!_forceDirty', state);
         this._forceDirty = state;
-        // this.makeForceDirtyByViewMap();
     }
 
     setForceDisableGridlines(disabled: boolean) {
@@ -312,12 +306,12 @@ export class Spreadsheet extends SheetComponent {
 
     /**
      * canvas resize 并不会调用此函数
+     * resize 调用的是 forceDirty
      * @param state
      * @returns
      */
     override makeDirty(state: boolean = true) {
         super.makeDirty(state);
-        // this.getScene()?.getViewports().forEach(vp => vp.makeDirty());
         return this;
     }
 
@@ -325,28 +319,6 @@ export class Spreadsheet extends SheetComponent {
         // super.makeDirty(state);
         // if(state)this.markViewPortDirty(true);
         // return this;
-    }
-
-    viewportDirty: Map<string, boolean>  = new Map();
-
-    isViewPortDirty(viewPortKey?: string) {
-        if(!viewPortKey) return true;
-        return !!this.viewportDirty.get(viewPortKey)
-    }
-
-    /**
-     * 目前只有滚动用到了
-     * @param state
-     * @param viewPortKey
-     */
-    markViewPortDirty(state: boolean, viewPortKey?: string) {
-        // if(!viewPortKey) {
-        //     this.viewportDirty.forEach((value, key) => {
-        //         this.viewportDirty.set(key, true);
-        //     });
-        // } else {
-        //     this.viewportDirty.set(viewPortKey, state)
-        // }
     }
 
     tickTime() {
@@ -363,11 +335,12 @@ export class Spreadsheet extends SheetComponent {
 
     }
 
-    renderByViewport(mainCtx: UniverRenderingContext, bounds: IViewportBound, spreadsheetSkeleton: SpreadsheetSkeleton) {
-        const { viewBound, diffBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty } = bounds;
+    renderByViewport(mainCtx: UniverRenderingContext, viewportBoundsInfo: IViewportBound, spreadsheetSkeleton: SpreadsheetSkeleton) {
+        const { viewBound, cacheBounds,  diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty } = viewportBoundsInfo;
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
         mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
+
 
         if (viewPortKey === 'viewMain') {
             const cacheCtx = this._cacheCanvas.getContext();
@@ -387,14 +360,16 @@ export class Spreadsheet extends SheetComponent {
 
                     this._cacheCanvas.clear();
                     cacheCtx.setTransform(mainCtx.getTransform());
-                    this._draw(cacheCtx, bounds);
+                    viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBounds;
+                    // viewportBoundsInfo.viewPortPosition = viewportBoundsInfo.cacheViewPortPosition;
+                    this._draw(cacheCtx, viewportBoundsInfo);
 
                     // 注释掉这个 缓存 font 计算就失效了
                     // 但是有这句话，缩放又有问题。
                     // this._forceDirty = false;
-                    this._forceDirtyByViewport[viewPortKey] = false;
+                    // this._forceDirtyByViewport[viewPortKey] = false;
                 }
-                this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
+                // this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
 
                 // this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
                 console.timeEnd('!!!viewMain_render!!!_111');
@@ -421,42 +396,46 @@ export class Spreadsheet extends SheetComponent {
                     cacheCtx.setTransform(mainCtx.getTransform());
 
                     console.time('!!!viewMain_render_222---222');
-                    for (const diffBound of diffBounds) {
-                        const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
-                        cacheCtx.save();
-                        cacheCtx.beginPath();
-                        const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                        const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                        const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                        const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                        cacheCtx.rectByPrecision(x, y, w, h);
+                    // cacheCtx.clearRect(0, 0, cacheCtx.canvas.width, cacheCtx.canvas.height);
+                    console.log('bounds compare', viewBound, cacheBounds);
+                    // for (const diffBound of diffCacheBounds) {
+                        // const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
+                        // cacheCtx.save();
+                        // cacheCtx.beginPath();
+                        // const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        // const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        // const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        // const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                        // cacheCtx.rectByPrecision(x, y, w, h);
                         // cacheCtx.fillStyle = 'pink';
 
-                        cacheCtx.clip();
+                        // cacheCtx.clip();
                         // cacheCtx.fill();
                         // 222---222 关键耗时在这里
+                        //@ts-ignore
                         this._draw(cacheCtx, {
-                            viewBound: bounds.viewBound,
-                            diffBounds: [diffBound],
-                            diffX: bounds.diffX,
-                            diffY: bounds.diffY,
-                            viewPortPosition: bounds.viewPortPosition,
-                            viewPortKey: bounds.viewPortKey,
+                            // viewBound 是这一帧的区域
+                            viewBound: viewportBoundsInfo.cacheBounds,
+                            diffBounds: diffCacheBounds,
+                            diffX: viewportBoundsInfo.diffX,
+                            diffY: viewportBoundsInfo.diffY,
+                            viewPortPosition: viewportBoundsInfo.viewPortPosition,
+                            viewPortKey: viewportBoundsInfo.viewPortKey,
                         });
                         cacheCtx.restore();
-                    }
+                    // }
                     console.timeEnd('!!!viewMain_render_222---222');
-
                     this._refreshIncrementalState = false;
                 }
-                this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
-                // this._applyCache(mainCtx, left, top, dw, dh, left, top, dw, dh);
+                // this._applyCacheFreeze(mainCtx, this._cacheCanvas, left + BUFFER_EDGE_SIZE, top + BUFFER_EDGE_SIZE, dw, dh, left, top, dw, dh);
                 console.timeEnd('!!!viewMain_render!!!_222');
 
             }
+            this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
             cacheCtx.restore();
         } else {
             // console.time(`${viewPortKey}_render!!!`)
+            if(!this._cacheCanvasMap.get(viewPortKey)) return;
             const cacheCtx = this._cacheCanvasMap.get(viewPortKey)!.getContext();
             cacheCtx.save();
             const { left, top, right, bottom } = viewPortPosition;
@@ -471,7 +450,7 @@ export class Spreadsheet extends SheetComponent {
                     this._cacheCanvasMap.get(viewPortKey)!.clear();
                     cacheCtx.setTransform(mainCtx.getTransform());
                     // bounds.viewBound.top -= 20;
-                    this._draw(cacheCtx, bounds);
+                    this._draw(cacheCtx, viewportBoundsInfo);
 
                     // this._forceDirty = false;
                     // this._forceDirtyByViewport[viewPortKey] = false;
@@ -489,6 +468,8 @@ export class Spreadsheet extends SheetComponent {
 
                     this._refreshIncrementalState = true;
                     cacheCtx.setTransform(mainCtx.getTransform());
+
+
                     for (const diffBound of diffBounds) {
                         const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
                         cacheCtx.save();
@@ -501,12 +482,12 @@ export class Spreadsheet extends SheetComponent {
 
                         cacheCtx.clip();
                         this._draw(cacheCtx, {
-                            viewBound: bounds.viewBound,
+                            viewBound: viewportBoundsInfo.viewBound,
                             diffBounds: [diffBound],
-                            diffX: bounds.diffX,
-                            diffY: bounds.diffY,
-                            viewPortPosition: bounds.viewPortPosition,
-                            viewPortKey: bounds.viewPortKey,
+                            diffX: viewportBoundsInfo.diffX,
+                            diffY: viewportBoundsInfo.diffY,
+                            viewPortPosition: viewportBoundsInfo.viewPortPosition,
+                            viewPortKey: viewportBoundsInfo.viewPortKey,
                         });
                         cacheCtx.restore();
                     }
@@ -574,7 +555,9 @@ export class Spreadsheet extends SheetComponent {
         if (!parentSize || this._cacheCanvas == null) {
             return;
         }
-        const { width, height } = parentSize;
+        let { width, height } = parentSize;
+        width += BUFFER_EDGE_SIZE * 2;
+        height += BUFFER_EDGE_SIZE * 2;
         this._cacheCanvas.setSize(width, height);
         this._cacheCanvasTop.setSize(width, height);
         this._cacheCanvasLeft.setSize(width, height);
@@ -583,8 +566,6 @@ export class Spreadsheet extends SheetComponent {
         // resize 后要整个重新绘制
         // render 根据 _forceDirty 才清空 cacheCanvas
         this.makeForceDirty(true);
-        this.makeForceDirtyByViewMap();
-
     }
 
     protected _applyCache(

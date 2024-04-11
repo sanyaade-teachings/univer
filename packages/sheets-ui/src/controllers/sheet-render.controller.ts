@@ -165,14 +165,14 @@ export class SheetRenderController extends Disposable {
 
                         const { mainComponent, components, engine, scene } = currentRender;
                         const spreadsheet = mainComponent as Spreadsheet;
+
+                        // TODO command.params 数据结构有很多种
                         const dirtyRange = this._cellValueToRange(command.params.cellValue);
                         const dirtyBounds = this._rangeToBounds([dirtyRange], sk!);
-                        console.log('dirtyBounds', dirtyBounds);
                         const viewports = scene.getViewports();
                         this.dirtyViewBounds(viewports, dirtyBounds);
-                        console.log('dirtyViewbounds', )
                         spreadsheet.makeDirtyArea(dirtyBounds);
-                        // scene.makeDirty();
+                        scene.makeDirty();
                     }
                 }
 
@@ -233,10 +233,14 @@ export class SheetRenderController extends Disposable {
         return dirtyBounds;
     }
 
-    private dirtyViewBounds(viewports: Viewport[], dirtyBounds:IBoundRectNoAngle[]) {
+    private dirtyViewBounds(viewports: Viewport[], dirtyBounds:IViewportBounds[]) {
         for (const vp of viewports) {
             for(const b of dirtyBounds) {
-                if(Tools.hasIntersectionBetweenTwoBounds(vp, b)) {
+                const {x, y} = vp.getTransformedScroll();
+                let {left, top}: { left: number, top: number }  = vp;
+                left += x;
+                top += y;
+                if(Tools.hasIntersectionBetweenTwoBounds({left, top, right: left + (vp.width || 0), bottom: top + (vp.height || 0)}, b)) {
                     vp.makeDirty();
                 }
             }

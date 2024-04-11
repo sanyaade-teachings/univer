@@ -75,7 +75,7 @@ enum SCROLL_TYPE {
 }
 
 const MOUSE_WHEEL_SPEED_SMOOTHING_FACTOR = 3;
-
+const BUFFER_EDGE_SIZE = 500;
 export class Viewport {
     /**
      * scrollX means scroll x value for scrollbar in viewMain
@@ -156,6 +156,16 @@ export class Viewport {
     private _isRelativeY: boolean = false;
 
     private _preViewportBound: Nullable<IViewportBound>;
+
+    /**
+     * viewbound of cache area, cache area is slightly bigger than viewbound.
+     */
+    private _cacheBound: {
+        left: number,
+        top: number,
+        right: number,
+        bottom: number,
+    } | null = null;
 
     private _preScrollX: number = 0;
 
@@ -572,7 +582,14 @@ export class Viewport {
 
         ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
 
-        let viewBound = this._calViewportRelativeBounding();
+        let viewPortBound:IViewportBound = this._calViewportRelativeBounding();
+
+
+        // if(!this._cacheBound) {
+        //     this._cacheBound = this.expandBounds(viewPortBound.viewBound);
+        // }
+        // viewPortBound.cacheBounds = this._cacheBound;
+
 
         // 逻辑不对 上面的方法已经获取了 isDirty
         // const { diffX, diffY, diffBounds } = viewBound;
@@ -583,7 +600,7 @@ export class Viewport {
         // 每次 loop mainCtx 都会被清空 因此不可以越过某一个 viewport 的 render
         // if(this.isDirty){}
         objects.forEach((o) => {
-            o.render(ctx, viewBound);
+            o.render(ctx, viewPortBound);
         });
         if(isLast) {
             objects.forEach((o) => {
@@ -605,7 +622,7 @@ export class Viewport {
 
         this._scrollRendered();
 
-        this._preViewportBound = viewBound;
+        this._preViewportBound = viewPortBound;
     }
 
     getBounding() {
@@ -811,7 +828,7 @@ export class Viewport {
         }
 
         if(this._isDirty && this.viewPortKey === 'viewMain') {
-            //debugger
+            // debugger
             // console.trace()
         }
 
@@ -951,7 +968,7 @@ export class Viewport {
      * 滚动事件处理函数
      * 调用方 scroll.controller viewportMain.proscrollTo(config)
      * @param scrollType
-     * @param pos
+     * @param pos viewMain 滚动条的位置
      * @param isTrigger
      * @returns
      */
@@ -1057,7 +1074,20 @@ export class Viewport {
                 viewPortKey: this.viewPortKey,
                 isDirty: this.isDirty,
                 isForceDirty: this.isForceDirty,
-            };
+                cacheBounds: {
+                    left: -1,
+                    top: -1,
+                    right: -1,
+                    bottom: -1,
+                },
+                diffCacheBounds: [],
+                cacheViewPortPosition: {
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    right: 0,
+                },
+            } satisfies IViewportBound;
         }
 
         const sceneTrans = this._scene.transform.clone();
@@ -1126,22 +1156,59 @@ export class Viewport {
         };
 
         const preViewBound = this._preViewportBound?.viewBound;
-
+        const diffBounds = this._diffViewBound(viewBound, preViewBound);
+        const cacheBounds = this._cacheBound ? this._cacheBound : this.expandBounds(viewBound);
+        const prevCacheBounds = this.getCacheBounds();
+        const diffCacheBounds = this._diffViewBound(cacheBounds, prevCacheBounds);
+        const viewPortPosition = {
+            top: yFrom,
+            left: xFrom,
+            bottom: yTo,
+            right: xTo,
+        };
+        const cacheViewPortPosition = this.expandBounds(viewPortPosition);
         return {
             viewBound,
-            diffBounds: this._diffViewBound(viewBound, preViewBound),
+            diffBounds,
             diffX: (preViewBound?.left || 0) - viewBound.left,
             diffY: (preViewBound?.top || 0) - viewBound.top,
-            viewPortPosition: {
-                top: yFrom,
-                left: xFrom,
-                bottom: yTo,
-                right: xTo,
-            },
+            viewPortPosition,
             viewPortKey: this.viewPortKey,
             isDirty: this.isDirty,
             isForceDirty: this.isForceDirty,
-        };
+            cacheBounds,
+            diffCacheBounds,
+            cacheViewPortPosition,
+
+        }  satisfies IViewportBound;;
+    }
+
+    expandBounds(value: {top:number, left: number, bottom: number, right: number}) {
+        return {
+            top: Math.max(0, value.top - BUFFER_EDGE_SIZE),
+            left: Math.max(0, value.left - BUFFER_EDGE_SIZE),
+            right: value.right + BUFFER_EDGE_SIZE,
+            bottom: value.bottom + BUFFER_EDGE_SIZE,
+        }
+    }
+
+    getCacheBounds(viewBound?:IBoundRectNoAngle) {
+        if(!this._cacheBound){
+            if(viewBound) {
+                return this.expandBounds(viewBound);
+            }
+            if(this._preViewportBound) {
+                return this.expandBounds(this._preViewportBound?.viewBound);
+            }
+            return {
+                left: -1,
+                top: -1,
+                right: -1,
+                bottom: -1,
+            };
+        }
+        return this._cacheBound;
+
     }
 
     private _diffViewBound(mainBound: IBoundRectNoAngle, subBound: Nullable<IBoundRectNoAngle>) {

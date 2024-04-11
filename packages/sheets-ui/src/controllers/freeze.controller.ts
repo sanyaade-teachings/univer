@@ -1582,7 +1582,7 @@ export class FreezeController extends Disposable {
 
         this._updateViewport(startRow, startColumn, ySplit, xSplit, resetScroll);
         // this._getSheetObject()?.spreadsheet.makeForceDirty();
-        this._getSheetObject()?.spreadsheet.makeForceDirtyByViewMap();
+        // this._getSheetObject()?.scene.getViewports().forEach(vp => vp.makeForceDirty());
 
 
 

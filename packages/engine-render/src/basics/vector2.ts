@@ -851,14 +851,26 @@ export interface IBoundRectNoAngle {
 export interface IViewportBound {
     viewBound: IBoundRectNoAngle;
     diffBounds: IBoundRectNoAngle[];
+
+    /**
+     * 让更多右侧内容呈现 diffX < 0
+     * previewBound.x - viebound.x
+     */
     diffX: number;
     diffY: number;
+
+    /**
+     * viewport 相对 MainCtx 而言的物理位置, drawImage 用
+     */
     viewPortPosition: IBoundRectNoAngle;
     viewPortKey: string;
     isDirty?: boolean;
     isForceDirty?: boolean;
-}
 
+    cacheBounds: IBoundRectNoAngle;
+    diffCacheBounds: IBoundRectNoAngle[];
+    cacheViewPortPosition: IBoundRectNoAngle;
+}
 
 export interface IViewportBounds {
     left: number;
