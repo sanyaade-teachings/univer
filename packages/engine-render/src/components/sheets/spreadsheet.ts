@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-const BUFFER_EDGE_SIZE = 100; // TODO viewport 中还有一处
+// import '../../global';
 import type { IRange, ISelectionCellWithCoord, Nullable } from '@univerjs/core';
 import { BooleanNumber, ObjectMatrix, sortRules } from '@univerjs/core';
 
@@ -29,7 +29,7 @@ import type { UniverRenderingContext } from '../../context';
 import type { Engine } from '../../engine';
 import type { Scene } from '../../scene';
 import type { SceneViewer } from '../../scene-viewer';
-import type { Viewport } from '../../viewport';
+import { BUFFER_EDGE_SIZE, type Viewport } from '../../viewport';
 import { Documents } from '../docs/document';
 import { SpreadsheetExtensionRegistry } from '../extension';
 import type { Background } from './extensions/background';
@@ -56,6 +56,9 @@ export class Spreadsheet extends SheetComponent {
     private _cacheCanvasLeftTop!: Canvas;
     private _cacheCanvasMap: Map<string, Canvas> = new Map();
 
+    /**
+     * 增量更新
+     */
     private _refreshIncrementalState = false;
 
     private _forceDirty = false;
@@ -106,7 +109,6 @@ export class Spreadsheet extends SheetComponent {
                 this._addMakeDirtyToScroll();
 
                 (parent as Scene)?.getViewports().forEach(vp => vp.makeDirty());
-                // @ts-ignore
                 window.scene = parent;
 
             });
@@ -116,20 +118,14 @@ export class Spreadsheet extends SheetComponent {
         this.makeDirty(true);
         this.setViewports([]);
 
-        // @ts-ignore
         window.spreadsheet = this;
     }
 
     setViewports(viewports: Viewport[]) {
-        // viewports.forEach( v => {
-        //     this._forceDirtyByViewport[v.viewPortKey] = false;
-        //     this.viewportDirty.set(v.viewPortKey, true);
-        // })
         this._cacheCanvasMap.set('viewMain', this._cacheCanvas);
         this._cacheCanvasMap.set('viewMainTop', this._cacheCanvasTop);
         this._cacheCanvasMap.set('viewMainLeft', this._cacheCanvasLeft);
         this._cacheCanvasMap.set('viewMainLeftTop', this._cacheCanvasLeftTop);
-        // @ts-ignore
         window.cacheCanvasMap = this._cacheCanvasMap;
     }
 
@@ -148,12 +144,12 @@ export class Spreadsheet extends SheetComponent {
             cacheCanvas.getCanvasEle().style.background = 'pink';
             cacheCanvas.getCanvasEle().style.pointerEvents = 'none'; // 禁用事件响应
             cacheCanvas.getCanvasEle().style.border = '1px solid black'; // 设置边框样式
-            cacheCanvas.getCanvasEle().style.transformOrigin = '40% 50%';
-            cacheCanvas.getCanvasEle().style.transform = 'scale(0.5)';
+            cacheCanvas.getCanvasEle().style.transformOrigin = '30% 30%';
+            cacheCanvas.getCanvasEle().style.transform = 'scale(0.3)';
             // cacheCanvas.getCanvasEle().style.opacity = '0.9';
             document.body.appendChild(cacheCanvas.getCanvasEle());
         }
-        showCache(this._cacheCanvas);
+        showCache(this._cacheCanvasTop);
     }
 
     get backgroundExtension() {
@@ -196,8 +192,13 @@ export class Spreadsheet extends SheetComponent {
             : undefined;
         const extensions = this.getExtensionsByOrder();
 
+        if(bounds?.viewPortKey === 'viewMain' && diffRanges) {
+            console.log('diffRange count', diffRanges.length, 'diffY', bounds.diffY, bounds.diffBounds[0].bottom - bounds.diffBounds[0].top, 'height', diffRanges[0].endRow - diffRanges[0].startRow,'width', diffRanges[0].endColumn - diffRanges[0].startColumn);
+        }
+
         for (const extension of extensions) {
-            const timeKey = `${bounds?.viewPortKey}-${extension.uKey}`;
+            const timeKey = `${bounds?.viewPortKey}!!ext!!${extension.uKey}`;
+            // if(extension.uKey === 'DefaultBackgroundExtension') continue;
             console.time(timeKey);
             extension.draw(ctx, parentScale, spreadsheetSkeleton, diffRanges);
             console.timeEnd(timeKey);
@@ -321,24 +322,21 @@ export class Spreadsheet extends SheetComponent {
         // return this;
     }
 
-    // tickTime() {
-    //     //@ts-ignore
-    //     if(!window.lastTime) {
-    //         //@ts-ignore
-    //         window.lastTime = +new Date;
-    //     } else {
-    //         //@ts-ignore
-    //         console.log('time', +new Date - window.lastTime);
-    //         //@ts-ignore
-    //         window.lastTime = +new Date;
-    //     }
-    // }
+    tickTime() {
+        if(!window.lastTime) {
+            window.lastTime = +new Date;
+        } else {
+            console.log('time', +new Date - window.lastTime);
+            window.lastTime = +new Date;
+        }
+    }
 
     renderByViewport(mainCtx: UniverRenderingContext, viewportBoundsInfo: IViewportBound, spreadsheetSkeleton: SpreadsheetSkeleton) {
-        const { viewBound, cacheBounds,  diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, nearEdge } = viewportBoundsInfo;
+        const { viewBound, cacheBounds, diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, shouldCacheUpdate, sceneTrans } = viewportBoundsInfo;
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
-        const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
-        mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
+        const { a: scaleX = 1, d: scaleY = 1 } = sceneTrans.convert2DOMMatrix2D();//mainCtx.getTransform();
+
+        // mainCtx this._scene.getEngine()?.getCanvas().getContext();
 
 
         if (viewPortKey === 'viewMain') {
@@ -353,11 +351,12 @@ export class Spreadsheet extends SheetComponent {
 
             // 没有滚动
             if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || isForceDirty) {
-                console.time('!!!viewMain_render!!!_111');
+                //console.time('!!!viewMain_render!!!_111');
                 if (isDirty || isForceDirty || this.isForceDirty()) {
 
 
                     this._cacheCanvas.clear();
+                    // cacheCtx.setTransform(sceneTrans.convert2DOMMatrix2D());
                     cacheCtx.setTransform(mainCtx.getTransform());
                     viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBounds;
                     // viewportBoundsInfo.viewPortPosition = viewportBoundsInfo.cacheViewPortPosition;
@@ -369,48 +368,54 @@ export class Spreadsheet extends SheetComponent {
                     // this._forceDirtyByViewport[viewPortKey] = false;
                 }
                 this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
-                console.timeEnd('!!!viewMain_render!!!_111');
+                // //console.timeEnd('!!!viewMain_render!!!_111');
             } else {
                 // diffX diffY 可以是小数
                 // console.log('!!!viewMain_render!!!_222, diffBounds', diffX, diffY, isDirty)
-                console.time('!!!viewMain_render!!!_222');
+                //console.time('!!!viewMain_render!!!_222');
                 // if (this.isViewPortDirty(viewPortKey)) {
                 if( isDirty || 1){
-                    // console.time('viewMainscroll');
+                    // //console.time('viewMainscroll');
 
                     cacheCtx.save();
                     cacheCtx.setTransform(1, 0, 0, 1, 0, 0);
                     cacheCtx.globalCompositeOperation = 'copy';
                     cacheCtx.imageSmoothingEnabled = false;// 关闭抗锯齿  没有斜向图形不需要抗锯齿
-
                     cacheCtx.drawImage(this._cacheCanvas.getCanvasEle(), diffX * scaleX, diffY * scaleY);
-
                     cacheCtx.restore();
 
+                    // cacheCtx.clearRect(0, 0, cacheCtx.canvas.width, cacheCtx.canvas.height);
+
+
+                    // console.log('bounds compare', viewBound, cacheBounds);
+                    //console.time('!!!viewMain_render_222---222');
+
                     this._refreshIncrementalState = true;
+                    // cacheCtx.setTransform(sceneTrans.convert2DOMMatrix2D());
                     cacheCtx.setTransform(mainCtx.getTransform());
 
-                    console.time('!!!viewMain_render_222---222');
-                    // cacheCtx.clearRect(0, 0, cacheCtx.canvas.width, cacheCtx.canvas.height);
-                    console.log('bounds compare', viewBound, cacheBounds);
+                    // console.info('diff viewbounds', diffY,  diffCacheBounds,   diffBounds)
+                    if (shouldCacheUpdate) {
+                        for (const diffBound of diffCacheBounds) {
+                            cacheCtx.save();
+                            // const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
+                            // cacheCtx.beginPath();
+                            // const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                            // const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                            // const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                            // const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                            // cacheCtx.rectByPrecision(x, y, w, h);
+                            // cacheCtx.fillStyle = 'pink';
 
-                    // for (const diffBound of diffCacheBounds) {
-                        // const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
-                        // cacheCtx.save();
-                        // cacheCtx.beginPath();
-                        // const x = diffLeft - rowHeaderWidth - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                        // const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                        // const w = diffRight - diffLeft + rowHeaderWidth + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                        // const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                        // cacheCtx.rectByPrecision(x, y, w, h);
-                        // cacheCtx.fillStyle = 'pink';
+                            // cacheCtx.clip();
+                            // cacheCtx.fill();
+                            // 222---222 关键耗时在这里
+                            //@ts-ignore
+                            // cacheCtx.clearRect(0, 0, cacheCtx.canvas.width, cacheCtx.canvas.height);
 
-                        // cacheCtx.clip();
-                        // cacheCtx.fill();
-                        // 222---222 关键耗时在这里
-                        //@ts-ignore
-                        if(nearEdge) {
-                            console.log('%c viewMain 222-222 draw', 'background-color: red; color: white;');
+                            console.log(`%c viewMain 222---222 draw shouldUpdate: ${shouldCacheUpdate } diffY ${diffY}  ${viewportBoundsInfo.diffY}`, 'background-color: red; color: white;');
+
+                            const t0 = performance.now();
                             //@ts-ignore
                             this._draw(cacheCtx, {
                                 // viewBound 是这一帧的区域
@@ -421,20 +426,27 @@ export class Spreadsheet extends SheetComponent {
                                 viewPortPosition: viewportBoundsInfo.viewPortPosition,
                                 viewPortKey: viewportBoundsInfo.viewPortKey,
                             });
+                            const t1 = performance.now();
+                            if(t1 - t0 > 10) {
+                                if(!window.cacheCtxRec) {
+                                    window.cacheCtxRec = new Map();
+                                }
+                                window.cacheCtxRec.set(t1 - t0, '');//cacheCtx.canvas.toDataURL());
+                            }
+                            cacheCtx.restore();
                         }
-                        cacheCtx.restore();
-                    // }
-                    console.timeEnd('!!!viewMain_render_222---222');
+                    }
                     this._refreshIncrementalState = false;
+                    //console.timeEnd('!!!viewMain_render_222---222');
                 }
                 this._applyCacheFreeze(mainCtx, this._cacheCanvas, left, top, dw, dh, left, top, dw, dh);
-                console.timeEnd('!!!viewMain_render!!!_222');
+                //console.timeEnd('!!!viewMain_render!!!_222');
 
             }
             cacheCtx.restore();
-        } else {
-            // console.time(`${viewPortKey}_render!!!`)
-            if(!this._cacheCanvasMap.get(viewPortKey)) return;
+        } else if (['viewMainLeftTop', 'viewMainTop', 'viewMainLeft'].includes(viewPortKey)) {
+            // //console.time(`${viewPortKey}_render!!!`)
+            if (!this._cacheCanvasMap.get(viewPortKey)) return;
             const cacheCtx = this._cacheCanvasMap.get(viewPortKey)!.getContext();
             cacheCtx.save();
             const { left, top, right, bottom } = viewPortPosition;
@@ -442,11 +454,12 @@ export class Spreadsheet extends SheetComponent {
             const dh = bottom - top + columnHeaderHeight;
 
             if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || isForceDirty) {
-                console.time(`${viewPortKey}_render!!!_111`);
+                //console.time(`${viewPortKey}_render!!!_111`);
                 // console.log('!!!renderByViewPort', this.isDirty(), this.isForceDirty(), this.isViewPortDirty(viewPortKey))
                 // if (this.isViewPortDirty(viewPortKey) || this.isForceDirty()) {
                 if (isDirty || isForceDirty || this.isForceDirty()) {
                     this._cacheCanvasMap.get(viewPortKey)!.clear();
+                    // cacheCtx.setTransform(sceneTrans.convert2DOMMatrix2D());
                     cacheCtx.setTransform(mainCtx.getTransform());
                     // bounds.viewBound.top -= 20;
                     this._draw(cacheCtx, viewportBoundsInfo);
@@ -455,7 +468,7 @@ export class Spreadsheet extends SheetComponent {
                     // this._forceDirtyByViewport[viewPortKey] = false;
                 }
                 this._applyCacheFreeze(mainCtx, this._cacheCanvasMap.get(viewPortKey)!, left, top, dw, dh, left, top, dw, dh);
-                console.timeEnd(`${viewPortKey}_render!!!_111`);
+                //console.timeEnd(`${viewPortKey}_render!!!_111`);
             } else {
                 if(isDirty || 1){
                     cacheCtx.save();
@@ -466,8 +479,8 @@ export class Spreadsheet extends SheetComponent {
                     cacheCtx.restore();
 
                     this._refreshIncrementalState = true;
+                    // cacheCtx.setTransform(sceneTrans.convert2DOMMatrix2D());
                     cacheCtx.setTransform(mainCtx.getTransform());
-
 
                     for (const diffBound of diffBounds) {
                         const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
@@ -480,6 +493,7 @@ export class Spreadsheet extends SheetComponent {
                         cacheCtx.rectByPrecision(x, y, w, h);
 
                         cacheCtx.clip();
+                        // @ts-ignore
                         this._draw(cacheCtx, {
                             viewBound: viewportBoundsInfo.viewBound,
                             diffBounds: [diffBound],
@@ -497,6 +511,7 @@ export class Spreadsheet extends SheetComponent {
             }
             cacheCtx.restore();
         }
+
     }
 
     override render(mainCtx: UniverRenderingContext, bounds: IViewportBound) {
@@ -525,20 +540,22 @@ export class Spreadsheet extends SheetComponent {
         mainCtx.save();
 
 
-        // const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
-        // mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
+        const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
+        mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
 
-        // this._drawAuxiliary(mainCtx, bounds);
+        this._drawAuxiliary(mainCtx, bounds);
 
         const { viewPortKey } = bounds;
+        //console.time('renderSpreadsheet');
         if (bounds && this._allowCache === true) {
-            // console.time('!!!renderByViewport');
-            this.renderByViewport(mainCtx, bounds, spreadsheetSkeleton);
-            // console.timeEnd('!!!renderByViewport');
-
+            // if(['viewMain', 'viewMainLeftTop', 'viewMainTop', 'viewMainLeft'].includes(viewPortKey)) {
+            if(['viewMain'].includes(viewPortKey)) {
+                this.renderByViewport(mainCtx, bounds, spreadsheetSkeleton);
+            }
         } else {
             this._draw(mainCtx, bounds);
         }
+        //console.timeEnd('renderSpreadsheet');
 
         mainCtx.restore();
         return this;
@@ -641,16 +658,6 @@ export class Spreadsheet extends SheetComponent {
         );
         mainCtx.restore();
         cacheCtx.restore();
-        // // @ts-ignore
-        // if(!window.cacheImg) {
-        //     // @ts-ignore
-        //     window.cacheImg = cacheCtx.canvas.toDataURL();
-        // }
-        // // @ts-ignore
-        // if(!window.mainImg) {
-        //     // @ts-ignore
-        //     window.mainImg = mainCtx.canvas.toDataURL();
-        // }
     }
 
     protected override _draw(ctx: UniverRenderingContext, bounds?: IViewportBound) {
@@ -870,7 +877,7 @@ export class Spreadsheet extends SheetComponent {
         // overflow cell
         // this._clearRectangle(ctx, rowHeightAccumulation, columnWidthAccumulation, overflowCache.toNativeArray());
 
-        this._clearBackground(ctx, backgroundPositions);
+        // this._clearBackground(ctx, backgroundPositions);
 
         ctx.restore();
     }

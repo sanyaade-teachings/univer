@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { Viewport } from '..';
+import { Transform } from './transform';
+import { Viewport } from '../';
 import type { DeepImmutable, FloatArray } from './i-events';
 
 export interface IPoint {
@@ -855,7 +856,7 @@ export interface IViewportBound {
 
     /**
      * 让更多右侧内容呈现 diffX < 0
-     * previewBound.x - viebound.x
+     * previewBound.x - viewbound.x
      */
     diffX: number;
     diffY: number;
@@ -872,8 +873,9 @@ export interface IViewportBound {
     diffCacheBounds: IBoundRectNoAngle[];
     cacheViewPortPosition: IBoundRectNoAngle;
 
-    vp?: Viewport;
-    nearEdge: boolean;
+    // vp?: Viewport;
+    shouldCacheUpdate: number;
+    sceneTrans: Transform;
 }
 
 export interface IViewportBounds {

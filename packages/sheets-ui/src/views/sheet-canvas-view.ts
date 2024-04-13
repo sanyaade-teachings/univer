@@ -299,17 +299,13 @@ export class SheetCanvasView extends RxDisposable {
                         const deltaFactor = Math.abs(evt.deltaX);
                         // let magicNumber = deltaFactor < 40 ? 2 : deltaFactor < 80 ? 3 : 4;
                         const scrollNum = deltaFactor;
-
                         // 展示更多右侧内容，evt.deltaX > 0
                         // 展示更多左侧内容, evt.deltaX < 0
-
-                        offsetX = evt.deltaX;
-                        if(isLimitedStore?.isLimitedX && evt.deltaX > 0) offsetX = 0;
-                        // if (evt.deltaX > 0) {
-                        //     offsetX = scrollNum;
-                        // } else {
-                        //     offsetX = -scrollNum;
-                        // }
+                        if (evt.deltaX > 0) {
+                            offsetX = scrollNum;
+                        } else {
+                            offsetX = -scrollNum;
+                        }
                         this._commandService.executeCommand(SetScrollRelativeCommand.id, { offsetX });
 
                         // 临界点时执行浏览器行为

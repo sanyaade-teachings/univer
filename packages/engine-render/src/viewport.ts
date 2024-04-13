@@ -75,7 +75,8 @@ enum SCROLL_TYPE {
 }
 
 const MOUSE_WHEEL_SPEED_SMOOTHING_FACTOR = 3;
-const BUFFER_EDGE_SIZE = 100;
+const BUFFER_EDGE_SIZE = 100; // 500 的话存在数据不加载的问题
+export { BUFFER_EDGE_SIZE };
 export class Viewport {
     /**
      * scrollX means scroll x value for scrollbar in viewMain
@@ -157,6 +158,8 @@ export class Viewport {
 
     private _preViewportBound: Nullable<IViewportBound>;
 
+    private _preViewBound: IBoundRectNoAngle;
+    private _viewBound: IBoundRectNoAngle;
     /**
      * viewbound of cache area, cache area is slightly bigger than viewbound.
      */
@@ -222,6 +225,8 @@ export class Viewport {
         window.viewport[viewPortKey] = this;
         //@ts-ignore
         console.log('viewport constructor', viewPortKey, window.viewport[viewPortKey])
+
+        this.getBounding();
     }
 
     get scene() {
@@ -384,6 +389,9 @@ export class Viewport {
      * scroll to position, absolute
      * 只有 viewMain 才会被调用 scrollTo 其他 viewport 都不会调用此方法
      * 具体在 scroll.controller 中
+     *
+     * Debug
+     * window.scene.getViewports()[0].scrollTo({x: 14.2, y: 1.8}, true)
      * @param pos
      * @returns
      */
@@ -555,6 +563,14 @@ export class Viewport {
         return composeResult;
     }
 
+    /**
+     *
+     * @param parentCtx 如果 layer._allowCache true, 那么 parentCtx 是 layer 中的 cacheCtx
+     * @param objects
+     * @param isMaxLayer
+     * @param isLast
+     * @returns
+     */
     render(parentCtx?: UniverRenderingContext, objects: BaseObject[] = [], isMaxLayer = false, isLast = false) {
         if (
             this.isActive === false ||
@@ -573,8 +589,8 @@ export class Viewport {
 
         const ctx = mainCtx;
 
-        const m = sceneTrans.getMatrix();
-        const n = this.getScrollBarTransForm().getMatrix();
+        const sceneTransMatrix = sceneTrans.getMatrix();
+        const scrollbarTransMatrix = this.getScrollBarTransForm().getMatrix();
 
         ctx.save();
 
@@ -582,32 +598,19 @@ export class Viewport {
             ctx.beginPath();
             // DEPT: left is set by upper views but width and height is not
 
-            const { scaleX, scaleY } = this._getBoundScale(m[0], m[3]);
+            const { scaleX, scaleY } = this._getBoundScale(sceneTransMatrix[0], sceneTransMatrix[3]);
             ctx.rect(this.left, this.top, (this.width || 0), (this.height || 0));
             ctx.clip();
         }
 
-        ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+        // console.log('viewport transform', sceneTransMatrix[0], sceneTransMatrix[1], sceneTransMatrix[2], sceneTransMatrix[3], sceneTransMatrix[4], sceneTransMatrix[5])
+        ctx.transform(sceneTransMatrix[0], sceneTransMatrix[1], sceneTransMatrix[2], sceneTransMatrix[3], sceneTransMatrix[4], sceneTransMatrix[5]);
 
         let viewPortBound:IViewportBound = this._calViewportRelativeBounding();
+        viewPortBound.sceneTrans = sceneTrans.scale(2, 2);
 
-
-        // if(!this._cacheBound) {
-        //     this._cacheBound = this.expandBounds(viewPortBound.viewBound);
-        // }
-        // viewPortBound.cacheBounds = this._cacheBound;
-
-
-        // 逻辑不对 上面的方法已经获取了 isDirty
-        // const { diffX, diffY, diffBounds } = viewBound;
-        // if(diffBounds.length !== 0 && (diffX !== 0 || diffY !== 0)){
-        //     // this.makeDirty()
-        // }
-
-        // 每次 loop mainCtx 都会被清空 因此不可以越过某一个 viewport 的 render
-        // if(this.isDirty){}
         objects.forEach((o) => {
-            viewPortBound.vp = this;
+            // viewPortBound.vp = this;
             o.render(ctx, viewPortBound);
         });
         if(isLast) {
@@ -623,13 +626,13 @@ export class Viewport {
         if (this._scrollBar && isMaxLayer) {
             ctx.save();
 
-            ctx.transform(n[0], n[1], n[2], n[3], n[4], n[5]);
+            ctx.transform(scrollbarTransMatrix[0], scrollbarTransMatrix[1], scrollbarTransMatrix[2], scrollbarTransMatrix[3], scrollbarTransMatrix[4], scrollbarTransMatrix[5]);
             this._drawScrollbar(ctx);
             ctx.restore();
         }
 
         this._scrollRendered();
-
+        this._preViewBound = viewPortBound.viewBound;
         this._preViewportBound = viewPortBound;
     }
 
@@ -1095,6 +1098,8 @@ export class Viewport {
                     bottom: 0,
                     right: 0,
                 },
+                shouldCacheUpdate: 0,
+                sceneTrans:  Transform.create([1, 0, 0, 1, 0, 0])
             } satisfies IViewportBound;
         }
 
@@ -1162,14 +1167,14 @@ export class Viewport {
             right: bottomRight.x,
             bottom: bottomRight.y,
         };
-
+        this._viewBound = viewBound;
         const preViewBound = this._preViewportBound?.viewBound;
         const diffBounds = this._diffViewBound(viewBound, preViewBound);
         const diffX = (preViewBound?.left || 0) - viewBound.left;
         const diffY = (preViewBound?.top || 0) - viewBound.top;
         let cacheBounds = this.initCacheBounds(viewBound);
         const prevCacheBounds = this._prevCacheBound;
-        const diffCacheBounds = this._diffViewBound(cacheBounds, prevCacheBounds);
+        let diffCacheBounds: IBoundRectNoAngle[] = [];// = this._diffViewBound(cacheBounds, prevCacheBounds);
         const viewPortPosition = {
             top: yFrom,
             left: xFrom,
@@ -1177,17 +1182,27 @@ export class Viewport {
             right: xTo,
         };
         const cacheViewPortPosition = this.expandBounds(viewPortPosition);
-        const nearEdge = diffX < 0 && Math.abs(viewBound.right - cacheBounds.right) < BUFFER_EDGE_SIZE/3 ||
-        diffX > 0 && Math.abs(viewBound.left - cacheBounds.left) < BUFFER_EDGE_SIZE/3 ||
+        const nearEdge = (diffX < 0 && Math.abs(viewBound.right - cacheBounds.right) < BUFFER_EDGE_SIZE/5 ||
+        diffX > 0 && Math.abs(viewBound.left - cacheBounds.left) < BUFFER_EDGE_SIZE/5 ||
         // 滚动条向上, 向上往回滚
-        diffY > 0 && Math.abs(viewBound.top - cacheBounds.top) < BUFFER_EDGE_SIZE/3 ||
+        diffY > 0 && Math.abs(viewBound.top - cacheBounds.top) < BUFFER_EDGE_SIZE/5 ||
         // 滚动条向下, 让更多下方的内容呈现到 spread 中,
-        diffY < 0 &&Math.abs(viewBound.bottom - cacheBounds.bottom) < BUFFER_EDGE_SIZE/3;
-        if(nearEdge) {
+        diffY < 0 &&Math.abs(viewBound.bottom - cacheBounds.bottom) < BUFFER_EDGE_SIZE/5) ? 0b01: 0b00;
+
+        const viewBoundOutCacheArea = !(viewBound.right < cacheBounds.right && viewBound.top > cacheBounds.top
+        && viewBound.left > cacheBounds.left && viewBound.bottom < cacheBounds.bottom) ? 0b10 : 0b00;
+
+        const shouldCacheUpdate = nearEdge | viewBoundOutCacheArea;
+        if(shouldCacheUpdate) {
             cacheBounds = this.expandBounds(viewBound);
             this._prevCacheBound = this._cacheBound;
             this._cacheBound = cacheBounds;
-            console.log('!!!update cacheBounds', cacheBounds)
+            if(this.viewPortKey === 'viewMain' && this._diffViewBound(cacheBounds, prevCacheBounds).length > 1) {
+                // debugger
+            }
+            diffCacheBounds = this._diffViewBound(cacheBounds, prevCacheBounds);
+            // 很频繁
+            // console.log(`!!!${this.viewPortKey}update cacheBounds`, cacheBounds)
         }
         return {
             viewBound,
@@ -1201,15 +1216,18 @@ export class Viewport {
             cacheBounds,
             diffCacheBounds,
             cacheViewPortPosition,
-            nearEdge,
+            shouldCacheUpdate,
+            sceneTrans,
 
         }  satisfies IViewportBound;;
     }
 
     expandBounds(value: {top:number, left: number, bottom: number, right: number}) {
         return {
-            top: Math.max(0, value.top - BUFFER_EDGE_SIZE),
-            left: Math.max(0, value.left - BUFFER_EDGE_SIZE),
+            // top: Math.max(0, value.top - BUFFER_EDGE_SIZE),
+            // left: Math.max(0, value.left - BUFFER_EDGE_SIZE),
+            top: value.top - BUFFER_EDGE_SIZE,
+            left: value.left - BUFFER_EDGE_SIZE,
             right: value.right + BUFFER_EDGE_SIZE,
             bottom: value.bottom + BUFFER_EDGE_SIZE,
         }
