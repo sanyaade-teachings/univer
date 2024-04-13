@@ -177,9 +177,6 @@ export class Viewport {
         bottom: number,
     } | null = null;
 
-    private _preScrollX: number = 0;
-
-    private _preScrollY: number = 0;
 
     constructor(viewPortKey: string, scene: ThinScene, props?: IViewProps) {
         this._viewPortKey = viewPortKey;
@@ -361,7 +358,7 @@ export class Viewport {
         console.log('!!!viewport resize', this._viewPortKey, position, this.left, this.right)
 
         this._resizeCacheCanvasAndScrollBar();
-        this.makeDirty();
+        this.makeForceDirty();
     }
 
     setPadding(param: IPosition) {
@@ -533,7 +530,10 @@ export class Viewport {
         return this._scrollBar;
     }
 
+    // _scrollTo ---> _scroll ---> onScrollAfterObserver.notifyObservers ---> updateScroll
     updateScroll(param: IScrollObserverParam) {
+        this._deltaScrollX = this.scrollX - this._preScrollX;
+        this._deltaScrollY = this.scrollY - this._preScrollY;
         this._preScrollX = this.scrollX;
         this._preScrollY = this.scrollY;
         const { scrollX, scrollY, actualScrollX, actualScrollY } = param;
@@ -605,10 +605,12 @@ export class Viewport {
 
         // console.log('viewport transform', sceneTransMatrix[0], sceneTransMatrix[1], sceneTransMatrix[2], sceneTransMatrix[3], sceneTransMatrix[4], sceneTransMatrix[5])
         ctx.transform(sceneTransMatrix[0], sceneTransMatrix[1], sceneTransMatrix[2], sceneTransMatrix[3], sceneTransMatrix[4], sceneTransMatrix[5]);
-
         let viewPortBound:IViewportBound = this._calViewportRelativeBounding();
-        viewPortBound.sceneTrans = sceneTrans.scale(2, 2);
-
+        // viewPortBound.sceneTrans = sceneTrans.scale(2, 2);
+        if(viewPortBound.diffX !== 0 || viewPortBound.diffY !== 0 || viewPortBound.diffBounds.length !== 0) {
+            this.makeDirty();
+            viewPortBound.isDirty = true;
+        }
         objects.forEach((o) => {
             // viewPortBound.vp = this;
             o.render(ctx, viewPortBound);
@@ -1014,18 +1016,11 @@ export class Viewport {
         }
 
         const limited = this.limitedScroll(); // 限制滚动范围
-
-        // 即使只移动垂直滚动条  x 也存在变化 不合理
-        // if(y !== undefined || x !== undefined) {
-        //     this.makeDirty();
+        // 注意只有 viewMain 才能进入到此函数 _scroll 因此其他能滚动的 viewport 要手动 makeDirty
+        // if (x !== undefined || y !== undefined) {
+        //     this.scene.getViewports().filter(vp => ['viewMain', 'viewMainTop', 'viewMainLeft'].includes(vp.viewPortKey)).forEach(vp => vp.makeDirty());
+        //     console.log('scroll dirty', this.viewPortKey, x, y);
         // }
-        // if(y !== undefined) {
-        //     this.scene.getViewports().filter((vp:Viewport) => vp.viewPortKey === 'viewMainLeft').forEach((vp: Viewport) => vp.makeDirty());
-        // }
-        if(x !== undefined) {
-            // this.scene.getViewports().filter((vp:Viewport) => vp.viewPortKey === 'viewMainTop').forEach((vp: Viewport) => vp.makeDirty());
-        }
-        // this.scene.getViewports().forEach(vp => vp.makeDirty());
         this.onScrollBeforeObserver.notifyObservers({
             viewport: this,
             scrollX: this.scrollX,
@@ -1158,6 +1153,7 @@ export class Viewport {
         //     differenceY = (this._preScrollY - this.scrollY) / ratioScrollY;
         // }
 
+        // this.getRelativeVector 加上了 scroll 后的坐标
         const topLeft = this.getRelativeVector(Vector2.FromArray([xFrom, yFrom]));
         const bottomRight = this.getRelativeVector(Vector2.FromArray([xTo, yTo]));
 
