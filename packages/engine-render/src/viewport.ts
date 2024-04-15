@@ -31,6 +31,7 @@ import type { UniverRenderingContext } from './context';
 import { Scene } from './scene';
 import type { BaseScrollBar } from './shape/base-scroll-bar';
 import type { ThinScene } from './thin-scene';
+import { Canvas as UniverCanvas } from './canvas';
 
 interface IViewPosition {
     top?: number;
@@ -159,26 +160,22 @@ export class Viewport {
 
     private _preViewportBound: Nullable<IViewportBound>;
 
-    private _preViewBound: IBoundRectNoAngle;
-    private _viewBound: IBoundRectNoAngle;
+
     /**
      * viewbound of cache area, cache area is slightly bigger than viewbound.
      */
-    private _cacheBound: {
-        left: number,
-        top: number,
-        right: number,
-        bottom: number,
-    } | null = null;
+    private _cacheBound: IBoundRectNoAngle | null = null;
 
-    private _prevCacheBound: {
-        left: number,
-        top: number,
-        right: number,
-        bottom: number,
-    } | null = null;
+    private _prevCacheBound: IBoundRectNoAngle | null = null;
+
+    /**
+     * bound of visible area
+     */
+    private _viewBound: IBoundRectNoAngle;
+    private _preViewBound: IBoundRectNoAngle;
 
     private _isDirty = true;
+    private _cacheCanvas: UniverCanvas;
 
     constructor(viewPortKey: string, scene: ThinScene, props?: IViewProps) {
         this._viewPortKey = viewPortKey;
@@ -215,16 +212,6 @@ export class Viewport {
         this._isWheelPreventDefaultY = props?.isWheelPreventDefaultY || false;
 
         this._resizeCacheCanvasAndScrollBar();
-        //@ts-ignore
-        if(!window.viewport) {
-            //@ts-ignore
-            window.viewport = {}
-        }
-        //@ts-ignore
-        window.viewport[viewPortKey] = this;
-        //@ts-ignore
-        console.log('viewport constructor', viewPortKey, window.viewport[viewPortKey])
-
         this.getBounding();
     }
 
@@ -1169,29 +1156,17 @@ export class Viewport {
             right: xTo,
         };
         const cacheViewPortPosition = this.expandBounds(viewPortPosition);
-        const nearEdge = (diffX < 0 && Math.abs(viewBound.right - cacheBounds.right) < BUFFER_EDGE_SIZE/5 ||
-        diffX > 0 && Math.abs(viewBound.left - cacheBounds.left) < BUFFER_EDGE_SIZE/5 ||
-        // 滚动条向上, 向上往回滚
-        diffY > 0 && Math.abs(viewBound.top - cacheBounds.top) < BUFFER_EDGE_SIZE/5 ||
-        // 滚动条向下, 让更多下方的内容呈现到 spread 中,
-        diffY < 0 &&Math.abs(viewBound.bottom - cacheBounds.bottom) < BUFFER_EDGE_SIZE/5) ? 0b01: 0b00;
 
-        const viewBoundOutCacheArea = !(viewBound.right < cacheBounds.right && viewBound.top > cacheBounds.top
-        && viewBound.left > cacheBounds.left && viewBound.bottom < cacheBounds.bottom) ? 0b10 : 0b00;
-        const shouldCacheUpdate = nearEdge | viewBoundOutCacheArea;
-
+        const shouldCacheUpdate = this._shouldUpdateCache(this._viewBound, this._cacheBound);
+        if(this.viewPortKey == 'viewMainLeft') {
+            this._shouldUpdateCache(this._viewBound, this._cacheBound);
+        }
         if(shouldCacheUpdate) {
             cacheBounds = this.expandBounds(viewBound);
             this._prevCacheBound = this._cacheBound || cacheBounds;
             this._cacheBound = cacheBounds;
             diffCacheBounds = this._diffViewBound(this._cacheBound, this._prevCacheBound);
         }
-
-        // if(this.viewPortKey === 'viewMainLeft') {
-        //     console.info(`diffRange viewport ${this.viewPortKey} shouldCacheUpdate`, shouldCacheUpdate, 'diffY', diffY
-        //     ,'diffBounds', diffBounds, 'diffCacheBounds', diffCacheBounds);
-        // }
-
         return {
             viewBound,
             diffBounds,
@@ -1235,6 +1210,32 @@ export class Viewport {
         } else if(this._preViewportBound){
             this._cacheBound = this.expandBounds(this._preViewportBound?.viewBound);
         }
+    }
+
+    private _shouldUpdateCache(viewBound: IBoundRectNoAngle, cacheBounds: IBoundRectNoAngle | null): number {
+        // 下面这种方式计算繁琐
+        // const nearEdge = (diffX < 0 && Math.abs(viewBound.right - cacheBounds.right) < BUFFER_EDGE_SIZE/5 ||
+        // diffX > 0 && Math.abs(viewBound.left - cacheBounds.left) < BUFFER_EDGE_SIZE/5 ||
+        // // 滚动条向上, 向上往回滚
+        // diffY > 0 && Math.abs(viewBound.top - cacheBounds.top) < BUFFER_EDGE_SIZE/5 ||
+        // // 滚动条向下, 让更多下方的内容呈现到 spread 中,
+        // diffY < 0 &&Math.abs(viewBound.bottom - cacheBounds.bottom) < BUFFER_EDGE_SIZE/5) ? 0b01: 0b00;
+
+        // const viewBoundOutCacheArea = !(viewBound.right < cacheBounds.right && viewBound.top > cacheBounds.top
+        // && viewBound.left > cacheBounds.left && viewBound.bottom < cacheBounds.bottom) ? 0b10 : 0b00;
+        // const shouldCacheUpdate = nearEdge | viewBoundOutCacheArea;
+        if (!cacheBounds) return 1;
+        const edge = BUFFER_EDGE_SIZE;
+
+        // 只要是在 cacheBounds 核心区域内就利用 cache
+        if (viewBound.left - edge > cacheBounds.left &&
+            viewBound.right + edge < cacheBounds.right &&
+            viewBound.top - edge > cacheBounds.top &&
+            viewBound.bottom + edge < cacheBounds.bottom
+        ) {
+            return 0;
+        }
+        return 1;
     }
 
     private _diffViewBound(mainBound: IBoundRectNoAngle, subBound: Nullable<IBoundRectNoAngle>) {
