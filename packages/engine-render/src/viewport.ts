@@ -25,11 +25,12 @@ import { fixLineWidthByScale, toPx } from './basics/tools';
 import { Transform } from './basics/transform';
 import type { IBoundRectNoAngle, IViewportBound } from './basics/vector2';
 import { Vector2 } from './basics/vector2';
+import { subtractViewportRange } from './basics/viewport-subtract';
+import { Spreadsheet } from './components/sheets/spreadsheet';
 import type { UniverRenderingContext } from './context';
+import { Scene } from './scene';
 import type { BaseScrollBar } from './shape/base-scroll-bar';
 import type { ThinScene } from './thin-scene';
-import { subtractViewportRange } from './basics/viewport-subtract';
-import { Scene } from './scene';
 
 interface IViewPosition {
     top?: number;
@@ -177,6 +178,7 @@ export class Viewport {
         bottom: number,
     } | null = null;
 
+    private _isDirty = true;
 
     constructor(viewPortKey: string, scene: ThinScene, props?: IViewProps) {
         this._viewPortKey = viewPortKey;
@@ -564,7 +566,8 @@ export class Viewport {
     }
 
     /**
-     *
+     * engine.renderLoop ---> scene.render ---> layer.render ---> viewport.render
+     * that means each layer call all viewports to render !!!
      * @param parentCtx 如果 layer._allowCache true, 那么 parentCtx 是 layer 中的 cacheCtx
      * @param objects
      * @param isMaxLayer
@@ -603,10 +606,8 @@ export class Viewport {
             ctx.clip();
         }
 
-        // console.log('viewport transform', sceneTransMatrix[0], sceneTransMatrix[1], sceneTransMatrix[2], sceneTransMatrix[3], sceneTransMatrix[4], sceneTransMatrix[5])
         ctx.transform(sceneTransMatrix[0], sceneTransMatrix[1], sceneTransMatrix[2], sceneTransMatrix[3], sceneTransMatrix[4], sceneTransMatrix[5]);
         let viewPortBound:IViewportBound = this._calViewportRelativeBounding();
-        // viewPortBound.sceneTrans = sceneTrans.scale(2, 2);
         if(viewPortBound.diffX !== 0 || viewPortBound.diffY !== 0 || viewPortBound.diffBounds.length !== 0) {
             this.makeDirty();
             viewPortBound.isDirty = true;
@@ -618,11 +619,14 @@ export class Viewport {
         if(isLast) {
             objects.forEach((o) => {
                 o.makeDirty(false);
-                o.makeForceDirty?.(false);
+                if(o instanceof Spreadsheet) o.makeForceDirty?.(false);
             });
         }
         this.makeDirty(false);
         this.makeForceDirty(false);
+
+        this._preViewBound = viewPortBound.viewBound;
+        this._preViewportBound = viewPortBound;
         ctx.restore();
 
         if (this._scrollBar && isMaxLayer) {
@@ -634,8 +638,6 @@ export class Viewport {
         }
 
         this._scrollRendered();
-        this._preViewBound = viewPortBound.viewBound;
-        this._preViewportBound = viewPortBound;
     }
 
     getBounding() {
@@ -832,22 +834,11 @@ export class Viewport {
         };
     }
 
-    private _isDirty = true;
     makeDirty(state?: boolean) {
         if(state !== undefined) {
             this._isDirty = state;
         } else {
             this._isDirty = true;
-        }
-
-        if(this._isDirty && this.viewPortKey === 'viewMain') {
-            // debugger
-            // console.trace()
-        }
-
-        if(this._isDirty && this.viewPortKey === 'viewMainTop') {
-            //debugger
-            console.log()
         }
     }
 
@@ -1187,19 +1178,20 @@ export class Viewport {
 
         const viewBoundOutCacheArea = !(viewBound.right < cacheBounds.right && viewBound.top > cacheBounds.top
         && viewBound.left > cacheBounds.left && viewBound.bottom < cacheBounds.bottom) ? 0b10 : 0b00;
-
         const shouldCacheUpdate = nearEdge | viewBoundOutCacheArea;
+
         if(shouldCacheUpdate) {
             cacheBounds = this.expandBounds(viewBound);
-            this._prevCacheBound = this._cacheBound;
+            this._prevCacheBound = this._cacheBound || cacheBounds;
             this._cacheBound = cacheBounds;
-            if(this.viewPortKey === 'viewMain' && this._diffViewBound(cacheBounds, prevCacheBounds).length > 1) {
-                // debugger
-            }
-            diffCacheBounds = this._diffViewBound(cacheBounds, prevCacheBounds);
-            // 很频繁
-            // console.log(`!!!${this.viewPortKey}update cacheBounds`, cacheBounds)
+            diffCacheBounds = this._diffViewBound(this._cacheBound, this._prevCacheBound);
         }
+
+        // if(this.viewPortKey === 'viewMainLeft') {
+        //     console.info(`diffRange viewport ${this.viewPortKey} shouldCacheUpdate`, shouldCacheUpdate, 'diffY', diffY
+        //     ,'diffBounds', diffBounds, 'diffCacheBounds', diffCacheBounds);
+        // }
+
         return {
             viewBound,
             diffBounds,
@@ -1231,7 +1223,7 @@ export class Viewport {
 
     initCacheBounds(viewBound:IBoundRectNoAngle) {
         if(!this._cacheBound) {
-            this._cacheBound = viewBound;
+            this._cacheBound = this.expandBounds(viewBound);
             return this._cacheBound;
         }
         return this._cacheBound;

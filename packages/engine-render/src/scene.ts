@@ -92,10 +92,6 @@ export class Scene extends ThinScene {
                 })
             )
         );
-        // @ts-ignore
-        if(!window.scene) { window.scene = {}};
-        // @ts-ignore
-        window.scene[sceneKey] = this;
     }
 
     get ancestorScaleX() {
@@ -497,15 +493,13 @@ export class Scene extends ThinScene {
             return;
         }
 
-        !parentCtx    && this.getEngine()?.clearCanvas();
+        !parentCtx && this.getEngine()?.clearCanvas();
 
         const layers = this._layers.sort(sortRules);
 
         for (let i = 0, len = layers.length; i < len; i++) {
             layers[i].render(parentCtx, i === len - 1);
         }
-
-        // this.getViewports()?.forEach((vp: Viewport) => vp.render(parentCtx));
     }
 
     async requestRender(parentCtx?: UniverRenderingContext) {

@@ -281,6 +281,8 @@ export class SheetCanvasView extends RxDisposable {
             isRelativeX: true,
             isRelativeY: false,
         });
+
+        // TODO 移走到 viewport 中
         spreadsheet.setViewports([viewMain, viewMainTop, viewMainLeftTop, viewMainLeft]);
 
         // mouse scroll
