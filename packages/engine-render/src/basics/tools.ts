@@ -752,3 +752,12 @@ export function ptToPixel(pt: number) {
 export function pixelToPt(px: number) {
     return px * PX_TO_PT_RATIO;
 }
+
+
+export function inViewRanges( ranges:IRange[], rowIndex: number, colIndex: number) {
+    for (const range of ranges) {
+        if(rowIndex < range.startRow || rowIndex > range.endRow || colIndex < range.startColumn || colIndex > range.endColumn)
+        return false;
+    }
+    return true;
+}

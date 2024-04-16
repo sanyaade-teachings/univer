@@ -15,7 +15,7 @@
  */
 
 import { Transform } from './transform';
-import { Viewport } from '../';
+import { Canvas } from '../canvas';
 import type { DeepImmutable, FloatArray } from './i-events';
 
 export interface IPoint {
@@ -850,7 +850,10 @@ export interface IBoundRectNoAngle {
     bottom: number;
 }
 
-export interface IViewportBound {
+export interface IViewportInfo {
+    /**
+     * viewBound 的 left right 包括列头行头
+     */
     viewBound: IBoundRectNoAngle;
     diffBounds: IBoundRectNoAngle[];
 
@@ -862,7 +865,7 @@ export interface IViewportBound {
     diffY: number;
 
     /**
-     * viewport 相对 MainCtx 而言的物理位置, drawImage 用
+     * 冻结行列的物理位置, drawImage 用
      */
     viewPortPosition: IBoundRectNoAngle;
     viewPortKey: string;
@@ -876,6 +879,7 @@ export interface IViewportBound {
     // vp?: Viewport;
     shouldCacheUpdate: number;
     sceneTrans: Transform;
+    cacheCanvas: Canvas;
 }
 
 export interface IViewportBounds {

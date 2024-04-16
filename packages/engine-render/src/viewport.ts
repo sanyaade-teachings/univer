@@ -23,7 +23,7 @@ import type { IWheelEvent } from './basics/i-events';
 import { PointerInput } from './basics/i-events';
 import { fixLineWidthByScale, toPx } from './basics/tools';
 import { Transform } from './basics/transform';
-import type { IBoundRectNoAngle, IViewportBound } from './basics/vector2';
+import type { IBoundRectNoAngle, IViewportInfo } from './basics/vector2';
 import { Vector2 } from './basics/vector2';
 import { subtractViewportRange } from './basics/viewport-subtract';
 import { Spreadsheet } from './components/sheets/spreadsheet';
@@ -77,7 +77,7 @@ enum SCROLL_TYPE {
 }
 
 const MOUSE_WHEEL_SPEED_SMOOTHING_FACTOR = 3;
-const BUFFER_EDGE_SIZE = 100; // 500 的话存在数据不加载的问题
+const BUFFER_EDGE_SIZE = 0; // 500 的话存在数据不加载的问题
 export { BUFFER_EDGE_SIZE };
 export class Viewport {
     /**
@@ -85,8 +85,11 @@ export class Viewport {
      * use getBarScroll to get scrolling value(scrollX, scrollY) for scrollbar
      */
     scrollX: number = 0;
-
     scrollY: number = 0;
+    _preScrollX: number = 0;
+    _preScrollY: number = 0;
+    _deltaScrollX: number = 0;
+    _deltaScrollY: number = 0;
 
     /**
      * The actual scroll offset equals the distance from the content area position to the top, and there is a conversion relationship with scrollX and scrollY
@@ -158,7 +161,7 @@ export class Viewport {
 
     private _isRelativeY: boolean = false;
 
-    private _preViewportBound: Nullable<IViewportBound>;
+    private _preViewportBound: Nullable<IViewportInfo>;
 
 
     /**
@@ -175,7 +178,7 @@ export class Viewport {
     private _preViewBound: IBoundRectNoAngle;
 
     private _isDirty = true;
-    private _cacheCanvas: UniverCanvas;
+    private _cacheCanvas: UniverCanvas | null = null;
 
     constructor(viewPortKey: string, scene: ThinScene, props?: IViewProps) {
         this._viewPortKey = viewPortKey;
@@ -213,6 +216,52 @@ export class Viewport {
 
         this._resizeCacheCanvasAndScrollBar();
         this.getBounding();
+
+        this.scene.getEngine()?.onTransformChangeObservable.add(() => {
+            this._spreadSheetResizeHandler();
+        });
+        this._spreadSheetResizeHandler();
+
+        this.initCacheCanvas();
+        this.displayCache();
+    }
+
+    initCacheCanvas() {
+        if(['viewMain', 'viewMainLeft', 'viewMainLeftTop', 'viewMainTop'].includes(this.viewPortKey)) {
+            this._cacheCanvas = new UniverCanvas();
+            const canvas = this._cacheCanvas.getCanvasEle();
+            const context = canvas.getContext('2d')!;
+            const borderWidth = 100;
+            const borderColor = 'lightblue';
+
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+
+            context.strokeStyle = borderColor;
+            context.lineWidth = borderWidth;
+            context.strokeRect(0, 0, canvasWidth, canvasHeight);
+        }
+    }
+
+    displayCache() {
+        const globalThis = window as any;
+        if (!globalThis.cacheSet) {
+            globalThis.cacheSet = new Set();
+        }
+        const showCache = (cacheCanvas: UniverCanvas) => {
+            cacheCanvas.getCanvasEle().style.zIndex = '100';
+            cacheCanvas.getCanvasEle().style.position = 'fixed';
+            cacheCanvas.getCanvasEle().style.background = 'pink';
+            cacheCanvas.getCanvasEle().style.pointerEvents = 'none'; // 禁用事件响应
+            cacheCanvas.getCanvasEle().style.border = '1px solid black'; // 设置边框样式
+            cacheCanvas.getCanvasEle().style.transformOrigin = '30% 80%';
+            cacheCanvas.getCanvasEle().style.transform = 'scale(0.3)';
+            // cacheCanvas.getCanvasEle().style.opacity = '0.9';
+            document.body.appendChild(cacheCanvas.getCanvasEle());
+        }
+        if(this.viewPortKey === 'viewMain') {
+            showCache(this._cacheCanvas!);
+        }
     }
 
     get scene() {
@@ -244,7 +293,7 @@ export class Viewport {
     }
 
     get rightOrigin() {
-        return this._rightOrigin;
+        return this._rightOrigin;xx
     }
 
     get top(): number {
@@ -318,6 +367,9 @@ export class Viewport {
         this._active = false;
     }
 
+    /**
+     * 物理 canvas 大小改变时调用
+     */
     resetSizeAndScrollBar() {
         this._resizeCacheCanvasAndScrollBar();
     }
@@ -331,6 +383,12 @@ export class Viewport {
         this._scrollBar = null;
     }
 
+    /**
+     * 和 resetSizeAndScrollBar 不同
+     * 此方法是调整冻结行列设置时触发
+     * @param position
+     * @returns
+     */
     resize(position: IViewPosition) {
         const positionKeys = Object.keys(position);
         if (positionKeys.length === 0) {
@@ -572,37 +630,76 @@ export class Viewport {
             return;
         }
         const mainCtx = parentCtx || (this._scene.getEngine()?.getCanvas().getContext() as UniverRenderingContext);
+        const cacheCtx = this._cacheCanvas?.getContext();
 
         const sceneTrans = this._scene.transform.clone();
-
         sceneTrans.multiply(Transform.create([1, 0, 0, 1, -this.actualScrollX || 0, -this.actualScrollY || 0]));
 
-        const ctx = mainCtx;
-
-        const sceneTransMatrix = sceneTrans.getMatrix();
+        // 逻辑上的位移
+        const sceneTransM = sceneTrans.getMatrix();
         const scrollbarTransMatrix = this.getScrollBarTransForm().getMatrix();
 
-        ctx.save();
+        mainCtx.save();
 
         if (this._renderClipState) {
-            ctx.beginPath();
+            mainCtx.beginPath();
             // DEPT: left is set by upper views but width and height is not
 
-            const { scaleX, scaleY } = this._getBoundScale(sceneTransMatrix[0], sceneTransMatrix[3]);
-            ctx.rect(this.left, this.top, (this.width || 0), (this.height || 0));
-            ctx.clip();
+            const { scaleX, scaleY } = this._getBoundScale(sceneTransM[0], sceneTransM[3]);
+            mainCtx.rect(this.left, this.top, (this.width || 0), (this.height || 0));
+            mainCtx.clip();
         }
 
-        ctx.transform(sceneTransMatrix[0], sceneTransMatrix[1], sceneTransMatrix[2], sceneTransMatrix[3], sceneTransMatrix[4], sceneTransMatrix[5]);
-        let viewPortBound:IViewportBound = this._calViewportRelativeBounding();
-        if(viewPortBound.diffX !== 0 || viewPortBound.diffY !== 0 || viewPortBound.diffBounds.length !== 0) {
-            this.makeDirty();
-            viewPortBound.isDirty = true;
+        mainCtx.transform(sceneTransM[0], sceneTransM[1], sceneTransM[2], sceneTransM[3], sceneTransM[4], sceneTransM[5]);
+        // e = e' * a  f = f' * d  位移 * scale
+        const mainTF = mainCtx.getTransform()
+        // 向右滚动 200 后, mtf.e = -200
+        cacheCtx?.setTransform(mainTF.a, mainTF.b, mainTF.c, mainTF.d, mainTF.e, mainTF.f);
+        // cacheCtx?.setTransform(mainTF.a, mainTF.b, mainTF.c, mainTF.d, mainTF.e + BUFFER_EDGE_SIZE * mainTF.a, mainTF.f + BUFFER_EDGE_SIZE * mainTF.d);
+        // cacheCtx 修正 实际上 translate 到 mtf.e = 100
+        // cacheCtx?.translate(BUFFER_EDGE_SIZE, BUFFER_EDGE_SIZE);
+
+        let viewPortInfo:IViewportInfo = this._calViewportRelativeBounding();
+
+        // top < 0 fix
+        if(this.viewPortKey == 'viewMain' && cacheCtx) {
+            // cacheCtx.save();
+            // cacheCtx.setTransform(1, 0, 0, 1, 0, 0);
+            // // cacheCtx.clearRect(0, 0, 4000, 4000);
+            // const borderWidth = 400;
+            // const borderColor = 'rgba(220, 220, 227, 0.2)';
+
+            // const canvasWidth = cacheCtx.canvas.width;
+            // const canvasHeight = cacheCtx.canvas.height;
+
+            // cacheCtx.strokeStyle = borderColor;
+            // cacheCtx.lineWidth = borderWidth;
+            // cacheCtx.strokeRect(0, 0, canvasWidth, canvasHeight);
+            // cacheCtx.restore();
+
+            if(viewPortInfo.cacheBounds.top > BUFFER_EDGE_SIZE) {
+                cacheCtx?.translate(0, BUFFER_EDGE_SIZE);
+            }
         }
+
+        // scrolling ---> make Dirty
+        if(viewPortInfo.diffX !== 0 || viewPortInfo.diffY !== 0 || viewPortInfo.diffBounds.length !== 0) {
+            this.makeDirty();
+            viewPortInfo.isDirty = true;
+        }
+        viewPortInfo.cacheCanvas = this._cacheCanvas!;
+
+        if(this.viewPortKey === 'viewMain') {
+            // this.makeDirty();
+            // viewPortInfo.isForceDirty = true;
+        }
+
+
         objects.forEach((o) => {
-            // viewPortBound.vp = this;
-            o.render(ctx, viewPortBound);
+            o.render(mainCtx, viewPortInfo);
         });
+
+
         if(isLast) {
             objects.forEach((o) => {
                 o.makeDirty(false);
@@ -612,16 +709,16 @@ export class Viewport {
         this.makeDirty(false);
         this.makeForceDirty(false);
 
-        this._preViewBound = viewPortBound.viewBound;
-        this._preViewportBound = viewPortBound;
-        ctx.restore();
+        this._preViewBound = viewPortInfo.viewBound;
+        this._preViewportBound = viewPortInfo;
+        mainCtx.restore();
 
         if (this._scrollBar && isMaxLayer) {
-            ctx.save();
+            mainCtx.save();
 
-            ctx.transform(scrollbarTransMatrix[0], scrollbarTransMatrix[1], scrollbarTransMatrix[2], scrollbarTransMatrix[3], scrollbarTransMatrix[4], scrollbarTransMatrix[5]);
-            this._drawScrollbar(ctx);
-            ctx.restore();
+            mainCtx.transform(scrollbarTransMatrix[0], scrollbarTransMatrix[1], scrollbarTransMatrix[2], scrollbarTransMatrix[3], scrollbarTransMatrix[4], scrollbarTransMatrix[5]);
+            this._drawScrollbar(mainCtx);
+            mainCtx.restore();
         }
 
         this._scrollRendered();
@@ -867,6 +964,7 @@ export class Viewport {
                 y,
             });
         }
+        this.makeForceDirty(true);
     }
 
     private _getViewPortSize() {
@@ -1037,7 +1135,7 @@ export class Viewport {
         return limited;
     }
 
-    private _calViewportRelativeBounding(): IViewportBound {
+    private _calViewportRelativeBounding(): IViewportInfo {
         if (this.isActive === false) {
             return {
                 viewBound: {
@@ -1073,7 +1171,7 @@ export class Viewport {
                 },
                 shouldCacheUpdate: 0,
                 sceneTrans:  Transform.create([1, 0, 0, 1, 0, 0])
-            } satisfies IViewportBound;
+            } satisfies IViewportInfo;
         }
 
         const sceneTrans = this._scene.transform.clone();
@@ -1157,16 +1255,17 @@ export class Viewport {
         };
         const cacheViewPortPosition = this.expandBounds(viewPortPosition);
 
-        const shouldCacheUpdate = this._shouldUpdateCache(this._viewBound, this._cacheBound);
-        if(this.viewPortKey == 'viewMainLeft') {
-            this._shouldUpdateCache(this._viewBound, this._cacheBound);
-        }
+        const shouldCacheUpdate = this._shouldCacheUpdate(this._viewBound, this._cacheBound, diffX, diffY);
+        // if(this.viewPortKey == 'viewMainLeft') {
+        //     this._shouldCacheUpdate(this._viewBound, this._cacheBound);
+        // }
         if(shouldCacheUpdate) {
             cacheBounds = this.expandBounds(viewBound);
             this._prevCacheBound = this._cacheBound || cacheBounds;
             this._cacheBound = cacheBounds;
             diffCacheBounds = this._diffViewBound(this._cacheBound, this._prevCacheBound);
         }
+        if(!cacheBounds) debugger
         return {
             viewBound,
             diffBounds,
@@ -1181,16 +1280,17 @@ export class Viewport {
             cacheViewPortPosition,
             shouldCacheUpdate,
             sceneTrans,
+            cacheCanvas: this._cacheCanvas!,
 
-        }  satisfies IViewportBound;;
+        }  satisfies IViewportInfo;;
     }
 
     expandBounds(value: {top:number, left: number, bottom: number, right: number}) {
         return {
-            // top: Math.max(0, value.top - BUFFER_EDGE_SIZE),
-            // left: Math.max(0, value.left - BUFFER_EDGE_SIZE),
-            top: value.top - BUFFER_EDGE_SIZE,
-            left: value.left - BUFFER_EDGE_SIZE,
+            top: Math.max(0, value.top - BUFFER_EDGE_SIZE),
+            left: Math.max(0, value.left - BUFFER_EDGE_SIZE),
+            // top: value.top - BUFFER_EDGE_SIZE,
+            // left: value.left - BUFFER_EDGE_SIZE,
             right: value.right + BUFFER_EDGE_SIZE,
             bottom: value.bottom + BUFFER_EDGE_SIZE,
         }
@@ -1212,30 +1312,34 @@ export class Viewport {
         }
     }
 
-    private _shouldUpdateCache(viewBound: IBoundRectNoAngle, cacheBounds: IBoundRectNoAngle | null): number {
-        // 下面这种方式计算繁琐
-        // const nearEdge = (diffX < 0 && Math.abs(viewBound.right - cacheBounds.right) < BUFFER_EDGE_SIZE/5 ||
-        // diffX > 0 && Math.abs(viewBound.left - cacheBounds.left) < BUFFER_EDGE_SIZE/5 ||
-        // // 滚动条向上, 向上往回滚
-        // diffY > 0 && Math.abs(viewBound.top - cacheBounds.top) < BUFFER_EDGE_SIZE/5 ||
-        // // 滚动条向下, 让更多下方的内容呈现到 spread 中,
-        // diffY < 0 &&Math.abs(viewBound.bottom - cacheBounds.bottom) < BUFFER_EDGE_SIZE/5) ? 0b01: 0b00;
-
-        // const viewBoundOutCacheArea = !(viewBound.right < cacheBounds.right && viewBound.top > cacheBounds.top
-        // && viewBound.left > cacheBounds.left && viewBound.bottom < cacheBounds.bottom) ? 0b10 : 0b00;
-        // const shouldCacheUpdate = nearEdge | viewBoundOutCacheArea;
+    private _shouldCacheUpdate(viewBound: IBoundRectNoAngle, cacheBounds:
+        IBoundRectNoAngle | null, diffX: number, diffY: number): number {
         if (!cacheBounds) return 1;
         const edge = BUFFER_EDGE_SIZE;
+        const nearEdge = (diffX < 0 && Math.abs(viewBound.right - cacheBounds.right) < BUFFER_EDGE_SIZE/5 ||
+        diffX > 0 && Math.abs(viewBound.left - cacheBounds.left) < BUFFER_EDGE_SIZE/5 ||
+        // 滚动条向上, 向上往回滚
+        diffY > 0 && Math.abs(viewBound.top - cacheBounds.top) < BUFFER_EDGE_SIZE/5 ||
+        // 滚动条向下, 让更多下方的内容呈现到 spread 中,
+        diffY < 0 &&Math.abs(viewBound.bottom - cacheBounds.bottom) < BUFFER_EDGE_SIZE/5) ? 0b01: 0b00;
 
+        const viewBoundOutCacheArea = !(viewBound.right < cacheBounds.right && viewBound.top > cacheBounds.top
+        && viewBound.left > cacheBounds.left && viewBound.bottom < cacheBounds.bottom) ? 0b10 : 0b00;
+        const shouldCacheUpdate = nearEdge | viewBoundOutCacheArea;
+
+
+
+        // 这样判断不足, 例如当 viewBound 在 cache top 的边缘但是往下滑动
         // 只要是在 cacheBounds 核心区域内就利用 cache
-        if (viewBound.left - edge > cacheBounds.left &&
-            viewBound.right + edge < cacheBounds.right &&
-            viewBound.top - edge > cacheBounds.top &&
-            viewBound.bottom + edge < cacheBounds.bottom
-        ) {
-            return 0;
-        }
-        return 1;
+        // if (viewBound.left - edge > cacheBounds.left &&
+        //     viewBound.right + edge < cacheBounds.right &&
+        //     viewBound.top - edge > cacheBounds.top &&
+        //     viewBound.bottom + edge < cacheBounds.bottom
+        // ) {
+        //     return 0;
+        // }
+        // return 1;
+        return shouldCacheUpdate;
     }
 
     private _diffViewBound(mainBound: IBoundRectNoAngle, subBound: Nullable<IBoundRectNoAngle>) {
@@ -1371,5 +1475,23 @@ export class Viewport {
         scaleY = this._isRelativeY ? (scaleY < 1 ? 1 : scaleY) : scaleY;
 
         return { scaleX, scaleY };
+    }
+
+    /**
+     * 物理 canvas 大小改变时调用
+     * @returns
+     */
+    private _spreadSheetResizeHandler() {
+        if(!this._cacheCanvas) return;
+        const mainCanvas = this.scene.getEngine().getCanvas();
+        let width = mainCanvas.getWidth();
+        let height = mainCanvas.getHeight();
+        width += BUFFER_EDGE_SIZE * 2;
+        height += BUFFER_EDGE_SIZE * 2;
+        this._cacheCanvas.setSize(width, height);
+        // this.makeDirty(true);
+        // resize 后要整个重新绘制
+        // render 根据 _forceDirty 才清空 cacheCanvas
+        this.makeForceDirty(true);
     }
 }

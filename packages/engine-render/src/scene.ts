@@ -92,6 +92,11 @@ export class Scene extends ThinScene {
                 })
             )
         );
+
+        if(!window.sceneMap) {
+            window.sceneMap = new Map();
+        }
+        window.sceneMap.set(sceneKey, this);
     }
 
     get ancestorScaleX() {

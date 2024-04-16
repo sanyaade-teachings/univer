@@ -24,7 +24,7 @@ import type { IObjectFullState, ITransformChangeState } from './basics/interface
 import { TRANSFORM_CHANGE_OBSERVABLE_TYPE } from './basics/interfaces';
 import { generateRandomKey, toPx } from './basics/tools';
 import { Transform } from './basics/transform';
-import type { IViewportBound, Vector2 } from './basics/vector2';
+import type { IViewportInfo, Vector2 } from './basics/vector2';
 import type { UniverRenderingContext } from './context';
 
 export const BASE_OBJECT_ARRAY = [
@@ -520,7 +520,7 @@ export abstract class BaseObject {
         return this;
     }
 
-    isRender(bounds?: IViewportBound) {
+    isRender(bounds?: IViewportInfo) {
         if (this._forceRender) {
             return false;
         }
@@ -557,7 +557,7 @@ export abstract class BaseObject {
         this._makeDirtyMix();
     }
 
-    render(ctx: UniverRenderingContext, bounds?: IViewportBound) {
+    render(ctx: UniverRenderingContext, bounds?: IViewportInfo) {
         /* abstract */
     }
 

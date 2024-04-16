@@ -16,7 +16,7 @@
 
 import type { IRange, IScale } from '@univerjs/core';
 
-import { getColor } from '../../../basics/tools';
+import { getColor, inViewRanges } from '../../../basics/tools';
 import type { UniverRenderingContext } from '../../../context';
 import { SpreadsheetExtensionRegistry } from '../../extension';
 import type { SpreadsheetSkeleton } from '../sheet-skeleton';
@@ -43,7 +43,7 @@ export class Background extends SheetExtension {
         ctx: UniverRenderingContext,
         parentScale: IScale,
         spreadsheetSkeleton: SpreadsheetSkeleton,
-        diffRanges?: IRange[]
+        {viewRanges, diffRanges}: { viewRanges: IRange[], diffRanges?: IRange[] }
     ) {
         const { stylesCache } = spreadsheetSkeleton;
         const { background, backgroundPositions } = stylesCache;
@@ -73,6 +73,10 @@ export class Background extends SheetExtension {
                 ctx.fillStyle = rgb || getColor([255, 255, 255])!;
                 ctx.beginPath();
                 backgroundCache.forValue((rowIndex, columnIndex) => {
+                    if(!inViewRanges(viewRanges, rowIndex, columnIndex)) {
+                        return true;
+                    }
+
                     const cellInfo = backgroundPositions?.getValue(rowIndex, columnIndex);
 
                     if (cellInfo == null) {
@@ -122,6 +126,8 @@ export class Background extends SheetExtension {
             });
         ctx.restore();
     }
+
+
 }
 
 SpreadsheetExtensionRegistry.add(Background);

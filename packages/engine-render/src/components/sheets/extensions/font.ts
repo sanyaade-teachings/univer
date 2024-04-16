@@ -25,6 +25,7 @@ import type { SheetComponent } from '../sheet-component';
 import { getDocsSkeletonPageSize, type SpreadsheetSkeleton } from '../sheet-skeleton';
 import { VERTICAL_ROTATE_ANGLE } from '../../../basics/text-rotation';
 import { SheetExtension } from './sheet-extension';
+import { inViewRanges } from '../../../basics/tools';
 
 const UNIQUE_KEY = 'DefaultFontExtension';
 
@@ -52,7 +53,7 @@ export class Font extends SheetExtension {
         ctx: UniverRenderingContext,
         parentScale: IScale,
         spreadsheetSkeleton: SpreadsheetSkeleton,
-        diffRanges?: IRange[]
+        {viewRanges, diffRanges}: { viewRanges?: IRange[], diffRanges?: IRange[] }
     ) {
         const { stylesCache, dataMergeCache, overflowCache, worksheet } = spreadsheetSkeleton;
         const { font: fontList } = stylesCache;
@@ -80,6 +81,10 @@ export class Font extends SheetExtension {
                 const fontObjectArray = fontList[fontFormat];
 
                 fontObjectArray.forValue((rowIndex, columnIndex, docsConfig) => {
+
+                    if(!inViewRanges(viewRanges!, rowIndex, columnIndex)) {
+                        return true;
+                    }
                     const cellInfo = this.getCellIndex(
                         rowIndex,
                         columnIndex,

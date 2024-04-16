@@ -23,6 +23,7 @@ import { SpreadsheetExtensionRegistry } from '../../extension';
 import type { BorderCacheItem } from '../interfaces';
 import type { SpreadsheetSkeleton } from '../sheet-skeleton';
 import { SheetExtension } from './sheet-extension';
+import { inViewRanges } from '../../../basics/tools';
 
 const UNIQUE_KEY = 'DefaultBorderExtension';
 
@@ -37,7 +38,7 @@ export class Border extends SheetExtension {
         ctx: UniverRenderingContext,
         parentScale: IScale,
         spreadsheetSkeleton: SpreadsheetSkeleton,
-        diffRanges?: IRange[]
+        {viewRanges, diffRanges}: { viewRanges?: IRange[], diffRanges?: IRange[] }
     ) {
         const { dataMergeCache, stylesCache, overflowCache } = spreadsheetSkeleton;
         const { border } = stylesCache;
@@ -67,6 +68,9 @@ export class Border extends SheetExtension {
 
         border?.forValue((rowIndex, columnIndex, borderCaches) => {
             if (!borderCaches) {
+                return true;
+            }
+            if(!inViewRanges(viewRanges!, rowIndex, columnIndex)) {
                 return true;
             }
 

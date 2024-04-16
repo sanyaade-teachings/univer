@@ -34,7 +34,7 @@ import type {
 } from '../../../basics/i-document-skeleton-cached';
 import { GlyphType, LineType, PageLayoutType } from '../../../basics/i-document-skeleton-cached';
 import type { IDocsConfig, INodeInfo, INodePosition, INodeSearch, ISectionBreakConfig } from '../../../basics/interfaces';
-import type { IViewportBound, Vector2 } from '../../../basics/vector2';
+import type { IViewportInfo, Vector2 } from '../../../basics/vector2';
 import { Skeleton } from '../../skeleton';
 import { Liquid } from '../liquid';
 import type { DocumentViewModel } from '../view-model/document-view-model';
@@ -80,7 +80,7 @@ export class DocumentSkeleton extends Skeleton {
     }
 
     // Layout the document.
-    calculate(bounds?: IViewportBound) {
+    calculate(bounds?: IViewportInfo) {
         if (!this.dirty) {
             return;
         }
@@ -470,7 +470,7 @@ export class DocumentSkeleton extends Skeleton {
      * Split the document according to SectionBreak and perform layout calculations.
      * @returns view model: skeleton
      */
-    private _createSkeleton(_bounds?: IViewportBound) {
+    private _createSkeleton(_bounds?: IViewportInfo) {
         // 每一个布局
         const DEFAULT_PAGE_SIZE = { width: Number.POSITIVE_INFINITY, height: Number.POSITIVE_INFINITY };
         const viewModel = this.getViewModel();
