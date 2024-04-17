@@ -180,6 +180,13 @@ export class Viewport {
     private _isDirty = true;
     private _cacheCanvas: UniverCanvas | null = null;
 
+    /**
+     * 主 canvas 宽高
+     * 用于和 viewport 下的 position 计算得到 cacheCanvas 大小
+     */
+    private _mainCanvasW: number;
+    private _mainCanvasH: number;
+
     constructor(viewPortKey: string, scene: ThinScene, props?: IViewProps) {
         this._viewPortKey = viewPortKey;
 
@@ -293,7 +300,7 @@ export class Viewport {
     }
 
     get rightOrigin() {
-        return this._rightOrigin;xx
+        return this._rightOrigin;
     }
 
     get top(): number {
@@ -368,7 +375,7 @@ export class Viewport {
     }
 
     /**
-     * 物理 canvas 大小改变时调用
+     * 物理 canvas 大小改变时调用(调整 window 大小时触发)
      */
     resetSizeAndScrollBar() {
         this._resizeCacheCanvasAndScrollBar();
@@ -385,7 +392,11 @@ export class Viewport {
 
     /**
      * 和 resetSizeAndScrollBar 不同
-     * 此方法是调整冻结行列设置时触发
+     * 此方法是调整冻结行列设置时 & 初始化时触发, resize window 时并不会触发
+     *
+     * 注意参数 position 不一定有 height & width  对于 viewMain 只有 left top bottom right
+     * this.width this.height 也有可能是 undefined
+     * 因此应通过 _getViewPortSize 获取宽高
      * @param position
      * @returns
      */
@@ -402,7 +413,8 @@ export class Viewport {
         //     }
         // });
         this._setWithAndHeight(position);
-        console.log('!!!viewport resize', this._viewPortKey, position, this.left, this.right)
+
+
 
         this._resizeCacheCanvasAndScrollBar();
         this.makeForceDirty();
@@ -950,6 +962,12 @@ export class Viewport {
 
         const { width, height } = this._getViewPortSize();
 
+        const canvasW = width + 100;
+        const canvasH = height + 100;
+
+        this._cacheCanvas?.setSize(canvasW, canvasH);
+        console.log('!!!viewport resize', this._viewPortKey, this.left, this.right, this._width, this._height, 'main', this._mainCanvasW, this._mainCanvasH, 'rs', canvasW, canvasH, width, height);
+
         const contentWidth = (this._scene.width - this._paddingEndX) * this._scene.scaleX;
 
         const contentHeight = (this._scene.height - this._paddingEndY) * this._scene.scaleY;
@@ -1255,7 +1273,7 @@ export class Viewport {
         };
         const cacheViewPortPosition = this.expandBounds(viewPortPosition);
 
-        const shouldCacheUpdate = this._shouldCacheUpdate(this._viewBound, this._cacheBound, diffX, diffY);
+        let shouldCacheUpdate = this._shouldCacheUpdate(this._viewBound, this._cacheBound, diffX, diffY);
         // if(this.viewPortKey == 'viewMainLeft') {
         //     this._shouldCacheUpdate(this._viewBound, this._cacheBound);
         // }
@@ -1265,6 +1283,9 @@ export class Viewport {
             this._cacheBound = cacheBounds;
             diffCacheBounds = this._diffViewBound(this._cacheBound, this._prevCacheBound);
         }
+        // if(Math.abs(diffX) < 15 && Math.abs(diffY) < 15) {
+        //     shouldCacheUpdate = 0;
+        // }
         if(!cacheBounds) debugger
         return {
             viewBound,
@@ -1479,6 +1500,7 @@ export class Viewport {
 
     /**
      * 物理 canvas 大小改变时调用
+     * called by this.scene.getEngine()?.onTransformChangeObservable.add
      * @returns
      */
     private _spreadSheetResizeHandler() {
@@ -1486,9 +1508,11 @@ export class Viewport {
         const mainCanvas = this.scene.getEngine().getCanvas();
         let width = mainCanvas.getWidth();
         let height = mainCanvas.getHeight();
-        width += BUFFER_EDGE_SIZE * 2;
-        height += BUFFER_EDGE_SIZE * 2;
-        this._cacheCanvas.setSize(width, height);
+        this._mainCanvasW = width;
+        this._mainCanvasH = height;
+        // width += BUFFER_EDGE_SIZE * 2;
+        // height += BUFFER_EDGE_SIZE * 2;
+        // this._cacheCanvas.setSize(width, height);
         // this.makeDirty(true);
         // resize 后要整个重新绘制
         // render 根据 _forceDirty 才清空 cacheCanvas
