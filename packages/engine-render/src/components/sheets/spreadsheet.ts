@@ -111,14 +111,6 @@ export class Spreadsheet extends SheetComponent {
         window.spreadsheet = this;
     }
 
-    setViewports(viewports: Viewport[]) {
-        // this._cacheCanvasMap.set('viewMain', this._cacheCanvas);
-        // this._cacheCanvasMap.set('viewMainTop', this._cacheCanvasTop);
-        // this._cacheCanvasMap.set('viewMainLeft', this._cacheCanvasLeft);
-        // this._cacheCanvasMap.set('viewMainLeftTop', this._cacheCanvasLeftTop);
-        // window.cacheCanvasMap = this._cacheCanvasMap;
-    }
-
     get backgroundExtension() {
         return this._backgroundExtension;
     }
@@ -169,12 +161,14 @@ export class Spreadsheet extends SheetComponent {
         const timeKey = `diffRange ${bounds?.viewPortKey}!!ext!!`;
         console.time(timeKey);
         for (const extension of extensions) {
-            // const timeKey = `${bounds?.viewPortKey}!!ext!!${extension.uKey}`;
-            // if(extension.uKey === 'DefaultBackgroundExtension') continue;
+            const timeKey = `${bounds?.viewPortKey}!!ext!!${extension.uKey}`;
+            console.time(timeKey);
             extension.draw(ctx, parentScale, spreadsheetSkeleton, {
                 viewRanges,
                 diffRanges,
+                checkOutOfViewBound: ['viewMain','viewMainLeft', 'viewMainTop'].includes(bounds!.viewPortKey),
             });
+            console.timeEnd(timeKey);
         }
         console.timeEnd(timeKey);
     }
@@ -377,7 +371,9 @@ export class Spreadsheet extends SheetComponent {
                     cacheCtx.restore();
 
                     this._refreshIncrementalState = true;
-                    // cacheCtx.setTransform(mainCtx.getTransform());
+
+                    // 绘制之前重设画笔位置到 spreadsheet 原点, 当没有滚动时, 这个值是 (rowHeaderWidth, colHeaderHeight)
+                    cacheCtx.setTransform(mainCtx.getTransform());
                     // cacheCtx.transform(1, 0, 0, 1, BUFFER_EDGE_SIZE* scaleX,  BUFFER_EDGE_SIZE* scaleX);
 
                     // console.info('diffRange viewbounds', 'diffBounds', diffBounds, diffY,  diffCacheBounds)
@@ -621,7 +617,7 @@ export class Spreadsheet extends SheetComponent {
             mainCtx.canvas.style.border = '1px solid black'; // 设置边框样式
             mainCtx.canvas.style.transformOrigin = '30% 0%';
             mainCtx.canvas.style.transform = 'scale(0.3)';
-            document.body.appendChild(mainCtx.canvas);
+            // document.body.appendChild(mainCtx.canvas);
         }
     }
 

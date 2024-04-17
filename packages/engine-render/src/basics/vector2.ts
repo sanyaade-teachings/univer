@@ -844,6 +844,10 @@ export interface IBoundRect {
 }
 
 export interface IBoundRectNoAngle {
+    /**
+     * 冻结区域相对 MainCanvas 的物理位置,
+     * left = n * colWidth + rowHeaderWidth
+     */
     left: number;
     top: number;
     right: number;
@@ -865,7 +869,8 @@ export interface IViewportInfo {
     diffY: number;
 
     /**
-     * 冻结行列的物理位置, drawImage 用
+     * 冻结行列在 canvas 上的物理位置, drawImage 用
+     * 例如冻结从第四列开始, left 就是 4 * column + rowHeaderWidth
      */
     viewPortPosition: IBoundRectNoAngle;
     viewPortKey: string;

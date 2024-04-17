@@ -38,7 +38,7 @@ export class Border extends SheetExtension {
         ctx: UniverRenderingContext,
         parentScale: IScale,
         spreadsheetSkeleton: SpreadsheetSkeleton,
-        {viewRanges, diffRanges}: { viewRanges?: IRange[], diffRanges?: IRange[] }
+        {viewRanges, diffRanges, checkOutOfViewBound}: { viewRanges?: IRange[], diffRanges?: IRange[], checkOutOfViewBound: boolean }
     ) {
         const { dataMergeCache, stylesCache, overflowCache } = spreadsheetSkeleton;
         const { border } = stylesCache;
@@ -70,8 +70,10 @@ export class Border extends SheetExtension {
             if (!borderCaches) {
                 return true;
             }
-            if(!inViewRanges(viewRanges!, rowIndex, columnIndex)) {
-                return true;
+            if( !checkOutOfViewBound ) {
+                if(!inViewRanges(viewRanges!, rowIndex, columnIndex)) {
+                    return true;
+                }
             }
 
             const cellInfo = this.getCellIndex(
@@ -85,7 +87,7 @@ export class Border extends SheetExtension {
             const { startY: cellStartY, endY: cellEndY, startX: cellStartX, endX: cellEndX } = cellInfo;
             const { isMerged, isMergedMainCell, mergeInfo } = cellInfo;
 
-            if (!this.isRenderDiffRangesByRow(mergeInfo.startRow, mergeInfo.endRow, diffRanges)) {
+            if (!this.isRowInDiffRanges(mergeInfo.startRow, mergeInfo.endRow, diffRanges)) {
                 return true;
             }
 

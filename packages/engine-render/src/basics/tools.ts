@@ -24,7 +24,7 @@ import type {
     LocaleService,
     Nullable,
 } from '@univerjs/core';
-import { BaselineOffset, FontStyleType, Tools } from '@univerjs/core';
+import { BaselineOffset, FontStyleType, Rectangle, Tools } from '@univerjs/core';
 import * as cjk from 'cjk-regex';
 
 import { DEFAULT_FONTFACE_PLANE } from './const';
@@ -753,11 +753,64 @@ export function pixelToPt(px: number) {
     return px * PX_TO_PT_RATIO;
 }
 
-
+/**
+ * 当前单元格在任意一个 viewRanges 中
+ * @param ranges
+ * @param rowIndex
+ * @param colIndex
+ * @returns
+ */
 export function inViewRanges( ranges:IRange[], rowIndex: number, colIndex: number) {
     for (const range of ranges) {
-        if(rowIndex < range.startRow || rowIndex > range.endRow || colIndex < range.startColumn || colIndex > range.endColumn)
+        if(rowIndex >= range.startRow && rowIndex <= range.endRow && colIndex >= range.startColumn && colIndex <= range.endColumn)
+        return true;
+    }
+    return false;
+}
+
+export function inLeftAndAboveViewRanges( ranges:IRange[], rowIndex: number, colIndex: number) {
+    for (const range of ranges) {
+        if(rowIndex > range.endRow || colIndex > range.endColumn)
         return false;
     }
     return true;
+}
+
+export function inCurrentAndAboveViewRanges( ranges:IRange[], rowIndex: number, colIndex: number) {
+    for (const range of ranges) {
+        if(rowIndex > range.endRow)
+        return false;
+    }
+    return true;
+}
+
+/**
+ * 在任意一个 rowRange 中
+ * @param ranges
+ * @param rowIndex
+ * @returns
+ */
+export function inRowViewRanges( ranges:IRange[], rowIndex: number) {
+    let flag = false;
+    for (const range of ranges) {
+        if(rowIndex >= range.startRow && rowIndex <= range.endRow)
+        flag = true;
+    }
+    return flag;
+}
+
+/**
+ * 如果 range 有相交, 那么扩展到第一个 range 中.
+ * @param ranges
+ */
+export function mergeRangeIfIntersects(mainRange: IRange, ranges:IRange[]) {
+    for (const range of ranges) {
+        if(Rectangle.intersects(mainRange, range)) {
+            mainRange.startRow = Math.min(mainRange.startRow, range.startRow);
+            mainRange.endRow = Math.max(mainRange.endRow, range.endRow);
+            mainRange.startColumn = Math.min(mainRange.startColumn, range.startColumn);
+            mainRange.endColumn = Math.max(mainRange.endColumn, range.endColumn);
+        }
+    }
+    return mainRange;
 }

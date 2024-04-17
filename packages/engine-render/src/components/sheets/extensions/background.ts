@@ -43,7 +43,7 @@ export class Background extends SheetExtension {
         ctx: UniverRenderingContext,
         parentScale: IScale,
         spreadsheetSkeleton: SpreadsheetSkeleton,
-        {viewRanges, diffRanges}: { viewRanges: IRange[], diffRanges?: IRange[] }
+        {viewRanges, diffRanges, checkOutOfViewBound}: { viewRanges?: IRange[], diffRanges?: IRange[], checkOutOfViewBound?: boolean }
     ) {
         const { stylesCache } = spreadsheetSkeleton;
         const { background, backgroundPositions } = stylesCache;
@@ -73,10 +73,10 @@ export class Background extends SheetExtension {
                 ctx.fillStyle = rgb || getColor([255, 255, 255])!;
                 ctx.beginPath();
                 backgroundCache.forValue((rowIndex, columnIndex) => {
-                    if(!inViewRanges(viewRanges, rowIndex, columnIndex)) {
+
+                    if(!inViewRanges(viewRanges!, rowIndex, columnIndex)) {
                         return true;
                     }
-
                     const cellInfo = backgroundPositions?.getValue(rowIndex, columnIndex);
 
                     if (cellInfo == null) {
@@ -84,9 +84,9 @@ export class Background extends SheetExtension {
                     }
                     let { startY, endY, startX, endX } = cellInfo;
                     const { isMerged, isMergedMainCell, mergeInfo } = cellInfo;
-                    if (isMerged) {
-                        return true;
-                    }
+                    // if (isMerged) {
+                    //     return true;
+                    // }
 
                     if (
                         !this.isRenderDiffRangesByCell(
