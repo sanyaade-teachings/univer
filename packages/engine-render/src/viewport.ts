@@ -77,7 +77,7 @@ enum SCROLL_TYPE {
 }
 
 const MOUSE_WHEEL_SPEED_SMOOTHING_FACTOR = 3;
-const BUFFER_EDGE_SIZE_X = 100; // 500 的话存在数据不加载的问题
+const BUFFER_EDGE_SIZE_X = 0; // 500 的话存在数据不加载的问题
 const BUFFER_EDGE_SIZE_Y = 0; // 500 的话存在数据不加载的问题
 export { BUFFER_EDGE_SIZE_X as BUFFER_EDGE_SIZE };
 export class Viewport {
@@ -1279,9 +1279,9 @@ export class Viewport {
         //     this._shouldCacheUpdate(this._viewBound, this._cacheBound);
         // }
         if(shouldCacheUpdate) {
-            if(this.viewPortKey === 'viewMain') {
+            // if(this.viewPortKey === 'viewMain') {
                 cacheBounds = this.expandBounds(viewBound);
-            }
+            // }
             this._prevCacheBound = this._cacheBound || cacheBounds;
             this._cacheBound = cacheBounds;
             diffCacheBounds = this._diffViewBound(this._cacheBound, this._prevCacheBound);
