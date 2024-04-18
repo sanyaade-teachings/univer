@@ -885,6 +885,9 @@ export interface IViewportInfo {
     shouldCacheUpdate: number;
     sceneTrans: Transform;
     cacheCanvas: Canvas;
+
+    leftOrigin: number;
+    topOrigin: number;
 }
 
 export interface IViewportBounds {

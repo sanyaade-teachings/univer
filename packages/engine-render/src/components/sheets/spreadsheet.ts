@@ -155,7 +155,7 @@ export class Spreadsheet extends SheetComponent {
 
         if((bounds?.viewPortKey === 'viewMain' || bounds?.viewPortKey === 'viewMainLeft')) {
             // console.log(bounds?.viewPortKey, 'diffRange count', diffRanges.length, 'diffY StartRow', diffRanges[0].startRow, 'diffY startColumn', diffRanges[0].startColumn , ':::::height', diffRanges[0].endRow - diffRanges[0].startRow,':::::width', diffRanges[0].endColumn - diffRanges[0].startColumn);
-            console.log(bounds?.viewPortKey, ' ranges', viewRanges[0]);
+            console.log(bounds?.viewPortKey, ' ranges', viewRanges[0], bounds?.cacheBounds, bounds?.viewBound);
         }
 
         const timeKey = `diffRange ${bounds?.viewPortKey}!!ext!!`;
@@ -300,7 +300,7 @@ export class Spreadsheet extends SheetComponent {
     }
 
     renderByViewport(mainCtx: UniverRenderingContext, viewportBoundsInfo: IViewportInfo, spreadsheetSkeleton: SpreadsheetSkeleton) {
-        const { viewBound, cacheBounds, diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, shouldCacheUpdate, cacheCanvas } = viewportBoundsInfo;
+        const { viewBound, cacheBounds, diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, shouldCacheUpdate, cacheCanvas, leftOrigin, topOrigin } = viewportBoundsInfo;
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
 
@@ -330,7 +330,13 @@ export class Spreadsheet extends SheetComponent {
                     // cacheCtx.setTransform(sceneTrans.convert2DOMMatrix2D());
 
                     cacheCtx.save();
-                    cacheCtx.setTransform(mainCtx.getTransform());
+
+
+                    // 在 render() 中 mainCtx 做了这样的操作
+                    // mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
+                    // 所以 cacheCtx.setTransform 已经包含了 rowHeaderWidth + scroll 距离
+                    const m = mainCtx.getTransform();
+                    cacheCtx.setTransform(m.a,m.b, m.c, m.d, m.e, m.f);
                     // cacheCtx.transform(1, 0, 0, 1, BUFFER_EDGE_SIZE, BUFFER_EDGE_SIZE);
                     viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBounds;
                     viewportBoundsInfo.viewPortPosition = viewportBoundsInfo.cacheViewPortPosition;
@@ -339,25 +345,19 @@ export class Spreadsheet extends SheetComponent {
                     // 不冻结
                     // cacheCtx.translate(-viewportBoundsInfo.left + BUFFER_EDGE_SIZE+ rowHeaderWidth, -viewportBoundsInfo.viewBound.top + columnHeaderHeight);
 
-                    // 在 render() 中 mainCtx 做了这样的操作
-                    // mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
 
-                    // 处理相对 viewportPosition 的偏移
-                    cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
+                    // 处理相对 viewportPosition 的偏移  回到 (0, 0) 单元格位置
+                    // cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
+                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE, -topOrigin);
                     // cacheCtx.translate(BUFFER_EDGE_SIZE, 0)
 
-                    // draw 绘制时知道 rowHeaderWidth 存在, 从 rowHeaderWidth, colHeaderHeight开始, 再 translate 内容偏移绘制
-                    this._draw(cacheCtx, viewportBoundsInfo);
+                    // extension 绘制时按照内容的左上角计算, 不考虑 rowHeaderWidth
+                    this.draw(cacheCtx, viewportBoundsInfo);
 
 
-
-                    // 注释掉这个 缓存 font 计算就失效了
-                    // 但是有这句话，缩放又有问题。
-                    // this._forceDirty = false;
-                    // this._forceDirtyByViewport[viewPortKey] = false;
                     cacheCtx.restore();
                 }
-
+                console.log('dh ', viewPortKey, dh, bottom,  top, columnHeaderHeight);
                 this._applyCacheFreeze(mainCtx, cacheCanvas, BUFFER_EDGE_SIZE, 0, dw, dh, left, top, dw, dh);
                 // const pic = mainCtx.canvas.toDataURL();
                 // pic;
@@ -384,7 +384,10 @@ export class Spreadsheet extends SheetComponent {
                     // cacheCtx.transform(1, 0, 0, 1, BUFFER_EDGE_SIZE* scaleX,  BUFFER_EDGE_SIZE* scaleX);
 
 
-                    cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
+                    // cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
+                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE, -topOrigin);
+
+
                     // console.time('!!!viewMain_render_222---222');
                     if (shouldCacheUpdate || 1) {
 
@@ -444,13 +447,15 @@ export class Spreadsheet extends SheetComponent {
                     cacheCtx.save();
                     // cacheCtx.setTransform(sceneTrans.convert2DOMMatrix2D());
                     cacheCtx.setTransform(mainCtx.getTransform());
-                    cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
+                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE, -topOrigin);
+
 
                     viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBounds;
                     this._draw(cacheCtx, viewportBoundsInfo);
 
                     cacheCtx.restore();
                 }
+                console.log('dh ', viewPortKey, dh, bottom,  top, columnHeaderHeight);
                 this._applyCacheFreeze(mainCtx, cacheCanvas, BUFFER_EDGE_SIZE, 0, dw, dh, left, top, dw, dh);
                 // console.timeEnd(`${viewPortKey}_render!!!_111`);
             } else {
@@ -464,7 +469,10 @@ export class Spreadsheet extends SheetComponent {
 
                     this._refreshIncrementalState = true;
                     cacheCtx.setTransform(mainCtx.getTransform());
-                    cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
+                    // cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
+                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE, -topOrigin);
+
+
 
                     // console.time(`${viewPortKey}_render!!!_222`);
                     if (shouldCacheUpdate || 1) {

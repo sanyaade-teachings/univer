@@ -262,12 +262,12 @@ export class Viewport {
             cacheCanvas.getCanvasEle().style.background = 'pink';
             cacheCanvas.getCanvasEle().style.pointerEvents = 'none'; // 禁用事件响应
             cacheCanvas.getCanvasEle().style.border = '1px solid black'; // 设置边框样式
-            cacheCanvas.getCanvasEle().style.transformOrigin = '30% 80%';
-            cacheCanvas.getCanvasEle().style.transform = 'scale(0.3)';
+            cacheCanvas.getCanvasEle().style.transformOrigin = '100% 100%';
+            cacheCanvas.getCanvasEle().style.transform = 'scale(0.5)';
             // cacheCanvas.getCanvasEle().style.opacity = '0.9';
             document.body.appendChild(cacheCanvas.getCanvasEle());
         }
-        if(this.viewPortKey === 'viewMain') {
+        if(this.viewPortKey === 'viewMainLeft' || this.viewPortKey === 'viewMain') {
             showCache(this._cacheCanvas!);
         }
     }
@@ -665,35 +665,14 @@ export class Viewport {
 
         mainCtx.transform(sceneTransM[0], sceneTransM[1], sceneTransM[2], sceneTransM[3], sceneTransM[4], sceneTransM[5]);
         // e = e' * a  f = f' * d  位移 * scale
-        const mainTF = mainCtx.getTransform()
-        // 向右滚动 200 后, mtf.e = -200
-        cacheCtx?.setTransform(mainTF.a, mainTF.b, mainTF.c, mainTF.d, mainTF.e, mainTF.f);
+        // const mainTF = mainCtx.getTransform()
+        // // 向右滚动 200 后, mtf.e = -200
+        // cacheCtx?.setTransform(mainTF.a, mainTF.b, mainTF.c, mainTF.d, mainTF.e, mainTF.f);
         // cacheCtx?.setTransform(mainTF.a, mainTF.b, mainTF.c, mainTF.d, mainTF.e + BUFFER_EDGE_SIZE * mainTF.a, mainTF.f + BUFFER_EDGE_SIZE * mainTF.d);
         // cacheCtx 修正 实际上 translate 到 mtf.e = 100
         // cacheCtx?.translate(BUFFER_EDGE_SIZE, BUFFER_EDGE_SIZE);
-
         let viewPortInfo:IViewportInfo = this._calViewportRelativeBounding();
 
-        // top < 0 fix
-        if(this.viewPortKey == 'viewMain' && cacheCtx) {
-            // cacheCtx.save();
-            // cacheCtx.setTransform(1, 0, 0, 1, 0, 0);
-            // // cacheCtx.clearRect(0, 0, 4000, 4000);
-            // const borderWidth = 400;
-            // const borderColor = 'rgba(220, 220, 227, 0.2)';
-
-            // const canvasWidth = cacheCtx.canvas.width;
-            // const canvasHeight = cacheCtx.canvas.height;
-
-            // cacheCtx.strokeStyle = borderColor;
-            // cacheCtx.lineWidth = borderWidth;
-            // cacheCtx.strokeRect(0, 0, canvasWidth, canvasHeight);
-            // cacheCtx.restore();
-
-            // if(viewPortInfo.cacheBounds.top > BUFFER_EDGE_SIZE_X) {
-            //     cacheCtx?.translate(0, BUFFER_EDGE_SIZE_X);
-            // }
-        }
 
         // scrolling ---> make Dirty
         if(viewPortInfo.diffX !== 0 || viewPortInfo.diffY !== 0 || viewPortInfo.diffBounds.length !== 0) {
@@ -701,11 +680,6 @@ export class Viewport {
             viewPortInfo.isDirty = true;
         }
         viewPortInfo.cacheCanvas = this._cacheCanvas!;
-
-        if(this.viewPortKey === 'viewMain') {
-            // this.makeDirty();
-            // viewPortInfo.isForceDirty = true;
-        }
 
 
         objects.forEach((o) => {
@@ -960,14 +934,17 @@ export class Viewport {
         const actualScrollX = this.actualScrollX;
 
         const actualScrollY = this.actualScrollY;
-
-        const { width, height } = this._getViewPortSize();
+        const prevTop = this._top;
+        const { width, height, parentHeight } = this._getViewPortSize();
 
         const canvasW = width + BUFFER_EDGE_SIZE_X * 2;
         const canvasH = height + BUFFER_EDGE_SIZE_Y * 2;
 
         this._cacheCanvas?.setSize(canvasW, canvasH);
-        console.log('!!!viewport resize', this._viewPortKey, this.left, this.right, this._width, this._height, 'main', this._mainCanvasW, this._mainCanvasH, 'rs', canvasW, canvasH, width, height);
+        if(this._isRelativeY && parentHeight - this._top !== height) {
+            console.log('_resizeCacheCanvasAndScrollBar!!!!!!')
+        }
+        console.log('!!!_resizeCacheCanvasAndScrollBar', this._viewPortKey, 'height::', height, 'top', this._top, prevTop, 'bottom', this._bottom, 'parentHeight', parentHeight, 'relativeY', this._isRelativeY, 'origin', this._heightOrigin);
 
         const contentWidth = (this._scene.width - this._paddingEndX) * this._scene.scaleX;
 
@@ -999,20 +976,27 @@ export class Viewport {
         const left = this._leftOrigin * scaleX;
         const top = this._topOrigin * scaleY;
 
+        this._left = left;
+        this._top = top;
         if (this._isRelativeX) {
             width = parentWidth - (this._left + this._right);
         } else {
             width = (this._widthOrigin || 0) * scaleX;
         }
-
+        if(this.viewPortKey == 'viewMain' || this.viewPortKey == 'viewMainLeft') {
+            console.log(this.viewPortKey, 'parentHeight', parentHeight, this._top, parentHeight - (this._top + this._bottom), (this._heightOrigin || 0) * scaleY);
+        }
         if (this._isRelativeY) {
             height = parentHeight - (this._top + this._bottom);
         } else {
             height = (this._heightOrigin || 0) * scaleY;
         }
 
-        this._left = left;
-        this._top = top;
+        // if(top != this._top) {
+        //     console.log('_resizeCacheCanvasAndScrollBar!!!!!!!1')
+        // }
+        // this._left = left;
+        // this._top = top;
         this._width = width;
         this._height = height;
 
@@ -1037,6 +1021,7 @@ export class Viewport {
         return {
             width,
             height,
+            parentHeight
         };
     }
 
@@ -1211,19 +1196,19 @@ export class Viewport {
 
         const size = this._getViewPortSize();
 
-        if (m[0] > 1) {
+        // if (m[0] > 1) {
             width = size.width;
-        }
+        // }
 
-        if (m[3] > 1) {
+        // if (m[3] > 1) {
             height = size.height;
-        }
+        // }
 
         const xFrom: number = this.left;
         const xTo: number = ((width || 0) + this.left);
         const yFrom: number = this.top;
         const yTo: number = ((height || 0) + this.top);
-
+        console.log('height:::', this.viewPortKey, size.height, height, yTo)
         /**
          * @DR-Univer The coordinates here need to be consistent with the clip in the render,
          * which may be caused by other issues that will be optimized later.
@@ -1251,6 +1236,11 @@ export class Viewport {
         // this.getRelativeVector 加上了 scroll 后的坐标
         const topLeft = this.getRelativeVector(Vector2.FromArray([xFrom, yFrom]));
         const bottomRight = this.getRelativeVector(Vector2.FromArray([xTo, yTo]));
+        if(this.viewPortKey == 'viewMain' || this.viewPortKey == 'viewMainLeft'){
+
+            console.log('yTo ', this.viewPortKey, yTo, 'bottomRight', bottomRight.y, 'height', height, 'top', this.top)
+        }
+
 
         const viewBound = {
             top: topLeft.y,
@@ -1304,6 +1294,8 @@ export class Viewport {
             shouldCacheUpdate,
             sceneTrans,
             cacheCanvas: this._cacheCanvas!,
+            leftOrigin: this._leftOrigin,
+            topOrigin: this._topOrigin,
 
         }  satisfies IViewportInfo;
     }
