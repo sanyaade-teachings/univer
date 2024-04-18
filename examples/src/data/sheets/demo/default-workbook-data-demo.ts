@@ -18,6 +18,7 @@ import type { IDocumentData, IWorkbookData } from '@univerjs/core';
 import { BooleanNumber, LocaleType } from '@univerjs/core';
 
 import { PAGE5_RICHTEXT_1 } from '../../slides/rich-text/page5-richtext1';
+import testData from './testdata.json';
 
 const richTextDemo: IDocumentData = {
     id: 'd',
@@ -100,7 +101,7 @@ const richTextDemo1: IDocumentData = {
     },
 };
 
-export const DEFAULT_WORKBOOK_DATA_DEMO: IWorkbookData = {
+export const DEFAULT_WORKBOOK_DATA_DEMO2: IWorkbookData = {
     id: 'workbook-01',
     locale: LocaleType.ZH_CN,
     name: 'UniverSheet Demo',
@@ -23319,3 +23320,5 @@ export const DEFAULT_WORKBOOK_DATA_DEMO: IWorkbookData = {
     //     },
     // ],
 };
+
+export const DEFAULT_WORKBOOK_DATA_DEMO: IWorkbookData = testData as unknown as IWorkbookData;

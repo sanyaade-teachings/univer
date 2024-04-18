@@ -77,8 +77,9 @@ enum SCROLL_TYPE {
 }
 
 const MOUSE_WHEEL_SPEED_SMOOTHING_FACTOR = 3;
-const BUFFER_EDGE_SIZE = 0; // 500 的话存在数据不加载的问题
-export { BUFFER_EDGE_SIZE };
+const BUFFER_EDGE_SIZE_X = 100; // 500 的话存在数据不加载的问题
+const BUFFER_EDGE_SIZE_Y = 0; // 500 的话存在数据不加载的问题
+export { BUFFER_EDGE_SIZE_X as BUFFER_EDGE_SIZE };
 export class Viewport {
     /**
      * scrollX means scroll x value for scrollbar in viewMain
@@ -689,9 +690,9 @@ export class Viewport {
             // cacheCtx.strokeRect(0, 0, canvasWidth, canvasHeight);
             // cacheCtx.restore();
 
-            if(viewPortInfo.cacheBounds.top > BUFFER_EDGE_SIZE) {
-                cacheCtx?.translate(0, BUFFER_EDGE_SIZE);
-            }
+            // if(viewPortInfo.cacheBounds.top > BUFFER_EDGE_SIZE_X) {
+            //     cacheCtx?.translate(0, BUFFER_EDGE_SIZE_X);
+            // }
         }
 
         // scrolling ---> make Dirty
@@ -962,8 +963,8 @@ export class Viewport {
 
         const { width, height } = this._getViewPortSize();
 
-        const canvasW = width + 100;
-        const canvasH = height + 100;
+        const canvasW = width + BUFFER_EDGE_SIZE_X * 2;
+        const canvasH = height + BUFFER_EDGE_SIZE_Y * 2;
 
         this._cacheCanvas?.setSize(canvasW, canvasH);
         console.log('!!!viewport resize', this._viewPortKey, this.left, this.right, this._width, this._height, 'main', this._mainCanvasW, this._mainCanvasH, 'rs', canvasW, canvasH, width, height);
@@ -1278,15 +1279,16 @@ export class Viewport {
         //     this._shouldCacheUpdate(this._viewBound, this._cacheBound);
         // }
         if(shouldCacheUpdate) {
-            cacheBounds = this.expandBounds(viewBound);
+            if(this.viewPortKey === 'viewMain') {
+                cacheBounds = this.expandBounds(viewBound);
+            }
             this._prevCacheBound = this._cacheBound || cacheBounds;
             this._cacheBound = cacheBounds;
             diffCacheBounds = this._diffViewBound(this._cacheBound, this._prevCacheBound);
         }
-        // if(Math.abs(diffX) < 15 && Math.abs(diffY) < 15) {
+        // if(Math.abs(diffX) < 50 && Math.abs(diffY) == 0 ) {
         //     shouldCacheUpdate = 0;
         // }
-        if(!cacheBounds) debugger
         return {
             viewBound,
             diffBounds,
@@ -1303,17 +1305,25 @@ export class Viewport {
             sceneTrans,
             cacheCanvas: this._cacheCanvas!,
 
-        }  satisfies IViewportInfo;;
+        }  satisfies IViewportInfo;
     }
 
     expandBounds(value: {top:number, left: number, bottom: number, right: number}) {
-        return {
-            top: Math.max(0, value.top - BUFFER_EDGE_SIZE),
-            left: Math.max(0, value.left - BUFFER_EDGE_SIZE),
-            // top: value.top - BUFFER_EDGE_SIZE,
-            // left: value.left - BUFFER_EDGE_SIZE,
-            right: value.right + BUFFER_EDGE_SIZE,
-            bottom: value.bottom + BUFFER_EDGE_SIZE,
+        if(this.viewPortKey === 'viewMain') {
+            return {
+                left: Math.max(0, value.left - BUFFER_EDGE_SIZE_X),
+                // top: Math.max(0, value.top - BUFFER_EDGE_SIZE_Y),
+                top: value.top,
+                right: value.right + BUFFER_EDGE_SIZE_X,
+                bottom: value.bottom + BUFFER_EDGE_SIZE_Y,
+            }
+        } else {
+            return {
+                top: value.top,
+                left: value.left,
+                right: value.right,
+                bottom: value.bottom,
+            }
         }
     }
 
@@ -1336,13 +1346,13 @@ export class Viewport {
     private _shouldCacheUpdate(viewBound: IBoundRectNoAngle, cacheBounds:
         IBoundRectNoAngle | null, diffX: number, diffY: number): number {
         if (!cacheBounds) return 1;
-        const edge = BUFFER_EDGE_SIZE;
-        const nearEdge = (diffX < 0 && Math.abs(viewBound.right - cacheBounds.right) < BUFFER_EDGE_SIZE/5 ||
-        diffX > 0 && Math.abs(viewBound.left - cacheBounds.left) < BUFFER_EDGE_SIZE/5 ||
+        const edge = BUFFER_EDGE_SIZE_X;
+        const nearEdge = (diffX < 0 && Math.abs(viewBound.right - cacheBounds.right) < BUFFER_EDGE_SIZE_X/5 ||
+        diffX > 0 && Math.abs(viewBound.left - cacheBounds.left) < BUFFER_EDGE_SIZE_X/5 ||
         // 滚动条向上, 向上往回滚
-        diffY > 0 && Math.abs(viewBound.top - cacheBounds.top) < BUFFER_EDGE_SIZE/5 ||
+        diffY > 0 && Math.abs(viewBound.top - cacheBounds.top) < BUFFER_EDGE_SIZE_Y/5 ||
         // 滚动条向下, 让更多下方的内容呈现到 spread 中,
-        diffY < 0 &&Math.abs(viewBound.bottom - cacheBounds.bottom) < BUFFER_EDGE_SIZE/5) ? 0b01: 0b00;
+        diffY < 0 &&Math.abs(viewBound.bottom - cacheBounds.bottom) < BUFFER_EDGE_SIZE_Y/5) ? 0b01: 0b00;
 
         const viewBoundOutCacheArea = !(viewBound.right < cacheBounds.right && viewBound.top > cacheBounds.top
         && viewBound.left > cacheBounds.left && viewBound.bottom < cacheBounds.bottom) ? 0b10 : 0b00;

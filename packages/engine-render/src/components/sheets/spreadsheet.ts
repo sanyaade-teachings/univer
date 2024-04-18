@@ -328,6 +328,8 @@ export class Spreadsheet extends SheetComponent {
                     cacheCanvas.clear();
                     cacheCtx.restore();
                     // cacheCtx.setTransform(sceneTrans.convert2DOMMatrix2D());
+
+                    cacheCtx.save();
                     cacheCtx.setTransform(mainCtx.getTransform());
                     // cacheCtx.transform(1, 0, 0, 1, BUFFER_EDGE_SIZE, BUFFER_EDGE_SIZE);
                     viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBounds;
@@ -337,9 +339,14 @@ export class Spreadsheet extends SheetComponent {
                     // 不冻结
                     // cacheCtx.translate(-viewportBoundsInfo.left + BUFFER_EDGE_SIZE+ rowHeaderWidth, -viewportBoundsInfo.viewBound.top + columnHeaderHeight);
 
-                    cacheCtx.translate(-left, -top);
+                    // 在 render() 中 mainCtx 做了这样的操作
+                    // mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
 
-                    // draw 绘制时知道 rowHeaderWidth 存在, 从 rowHeaderWidth, colHeader                    Height开始, 再 translate 内容偏移绘制
+                    // 处理相对 viewportPosition 的偏移
+                    cacheCtx.translate(-left + 100, -top);
+                    // cacheCtx.translate(100, 0)
+
+                    // draw 绘制时知道 rowHeaderWidth 存在, 从 rowHeaderWidth, colHeaderHeight开始, 再 translate 内容偏移绘制
                     this._draw(cacheCtx, viewportBoundsInfo);
 
 
@@ -348,10 +355,10 @@ export class Spreadsheet extends SheetComponent {
                     // 但是有这句话，缩放又有问题。
                     // this._forceDirty = false;
                     // this._forceDirtyByViewport[viewPortKey] = false;
-
+                    cacheCtx.restore();
                 }
 
-                this._applyCacheFreeze(mainCtx, cacheCanvas, 0, 0, dw, dh, left, top, dw, dh);
+                this._applyCacheFreeze(mainCtx, cacheCanvas, 100, 0, dw, dh, left, top, dw, dh);
                 // const pic = mainCtx.canvas.toDataURL();
                 // pic;
                 // //console.timeEnd('!!!viewMain_render!!!_111');
@@ -377,7 +384,8 @@ export class Spreadsheet extends SheetComponent {
                     // cacheCtx.transform(1, 0, 0, 1, BUFFER_EDGE_SIZE* scaleX,  BUFFER_EDGE_SIZE* scaleX);
 
 
-                    cacheCtx.translate(-left, -top);
+                    cacheCtx.translate(-left + 100, -top);
+                    // cacheCtx.translate(100, 0)
                     // console.info('diffRange viewbounds', 'diffBounds', diffBounds, diffY,  diffCacheBounds)
                     // console.time('!!!viewMain_render_222---222');
                     if (shouldCacheUpdate) {
@@ -415,7 +423,7 @@ export class Spreadsheet extends SheetComponent {
                     this._refreshIncrementalState = false;
 
                 }
-                this._applyCacheFreeze(mainCtx, cacheCanvas, 0, 0, dw, dh, left, top, dw, dh);
+                this._applyCacheFreeze(mainCtx, cacheCanvas, 100, 0, dw, dh, left, top, dw, dh);
 
             }
             cacheCtx.restore();
@@ -613,7 +621,7 @@ export class Spreadsheet extends SheetComponent {
             dh * pixelRatio
         );
         mainCtx.restore();
-        cacheCtx.restore();
+        cacheCtx.restore()
 
         if(!document.body.contains(mainCtx.canvas)) {
             mainCtx.canvas.style.zIndex = '100';
