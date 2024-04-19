@@ -21,7 +21,7 @@ import type { BaseObject } from './base-object';
 import { RENDER_CLASS_TYPE } from './basics/const';
 import type { IWheelEvent } from './basics/i-events';
 import { PointerInput } from './basics/i-events';
-import { fixLineWidthByScale, toPx } from './basics/tools';
+import { fixLineWidthByScale, getScale, toPx } from './basics/tools';
 import { Transform } from './basics/transform';
 import type { IBoundRectNoAngle, IViewportInfo } from './basics/vector2';
 import { Vector2 } from './basics/vector2';
@@ -77,7 +77,7 @@ enum SCROLL_TYPE {
 }
 
 const MOUSE_WHEEL_SPEED_SMOOTHING_FACTOR = 3;
-const BUFFER_EDGE_SIZE_X = 0; // 500 的话存在数据不加载的问题
+const BUFFER_EDGE_SIZE_X = 100; // 500 的话存在数据不加载的问题
 const BUFFER_EDGE_SIZE_Y = 0; // 500 的话存在数据不加载的问题
 export { BUFFER_EDGE_SIZE_X as BUFFER_EDGE_SIZE };
 export class Viewport {
@@ -114,6 +114,9 @@ export class Viewport {
 
     private _topOrigin: number = 0;
 
+    /**
+     * 没有处理 scaleX 的 left 值
+     */
     private _leftOrigin: number = 0;
 
     private _bottomOrigin: number = 0;
@@ -937,14 +940,15 @@ export class Viewport {
         const prevTop = this._top;
         const { width, height, parentHeight } = this._getViewPortSize();
 
-        const canvasW = width + BUFFER_EDGE_SIZE_X * 2;
+        const scaleX = this.scene.scaleX;
+        const canvasW = width + BUFFER_EDGE_SIZE_X * 2 * scaleX ;
         const canvasH = height + BUFFER_EDGE_SIZE_Y * 2;
 
         this._cacheCanvas?.setSize(canvasW, canvasH);
-        if(this._isRelativeY && parentHeight - this._top !== height) {
-            console.log('_resizeCacheCanvasAndScrollBar!!!!!!')
-        }
-        console.log('!!!_resizeCacheCanvasAndScrollBar', this._viewPortKey, 'height::', height, 'top', this._top, prevTop, 'bottom', this._bottom, 'parentHeight', parentHeight, 'relativeY', this._isRelativeY, 'origin', this._heightOrigin);
+        // if(this._isRelativeY && parentHeight - this._top !== height) {
+        //     console.log('_resizeCacheCanvasAndScrollBar!!!!!!')
+        // }
+        // console.log('!!!_resizeCacheCanvasAndScrollBar', this._viewPortKey, 'height::', height, 'top', this._top, prevTop, 'bottom', this._bottom, 'parentHeight', parentHeight, 'relativeY', this._isRelativeY, 'origin', this._heightOrigin);
 
         const contentWidth = (this._scene.width - this._paddingEndX) * this._scene.scaleX;
 
@@ -983,9 +987,9 @@ export class Viewport {
         } else {
             width = (this._widthOrigin || 0) * scaleX;
         }
-        if(this.viewPortKey == 'viewMain' || this.viewPortKey == 'viewMainLeft') {
-            console.log(this.viewPortKey, 'parentHeight', parentHeight, this._top, parentHeight - (this._top + this._bottom), (this._heightOrigin || 0) * scaleY);
-        }
+        // if(this.viewPortKey == 'viewMain' || this.viewPortKey == 'viewMainLeft') {
+        //     console.log(this.viewPortKey, 'parentHeight', parentHeight, this._top, parentHeight - (this._top + this._bottom), (this._heightOrigin || 0) * scaleY);
+        // }
         if (this._isRelativeY) {
             height = parentHeight - (this._top + this._bottom);
         } else {
@@ -1196,19 +1200,19 @@ export class Viewport {
 
         const size = this._getViewPortSize();
 
-        // if (m[0] > 1) {
+        if (m[0] > 1) {
             width = size.width;
-        // }
+        }
 
-        // if (m[3] > 1) {
+        if (m[3] > 1) {
             height = size.height;
-        // }
+        }
 
         const xFrom: number = this.left;
         const xTo: number = ((width || 0) + this.left);
         const yFrom: number = this.top;
         const yTo: number = ((height || 0) + this.top);
-        console.log('height:::', this.viewPortKey, size.height, height, yTo)
+        // console.log('height:::', this.viewPortKey, size.height, height, yTo)
         /**
          * @DR-Univer The coordinates here need to be consistent with the clip in the render,
          * which may be caused by other issues that will be optimized later.
@@ -1236,10 +1240,10 @@ export class Viewport {
         // this.getRelativeVector 加上了 scroll 后的坐标
         const topLeft = this.getRelativeVector(Vector2.FromArray([xFrom, yFrom]));
         const bottomRight = this.getRelativeVector(Vector2.FromArray([xTo, yTo]));
-        if(this.viewPortKey == 'viewMain' || this.viewPortKey == 'viewMainLeft'){
+        // if(this.viewPortKey == 'viewMain' || this.viewPortKey == 'viewMainLeft'){
 
-            console.log('yTo ', this.viewPortKey, yTo, 'bottomRight', bottomRight.y, 'height', height, 'top', this.top)
-        }
+        //     console.log('yTo ', this.viewPortKey, yTo, 'bottomRight', bottomRight.y, 'height', height, 'top', this.top)
+        // }
 
 
         const viewBound = {
@@ -1301,7 +1305,7 @@ export class Viewport {
     }
 
     expandBounds(value: {top:number, left: number, bottom: number, right: number}) {
-        if(this.viewPortKey === 'viewMain') {
+        // if(this.viewPortKey === 'viewMain') {
             return {
                 left: Math.max(0, value.left - BUFFER_EDGE_SIZE_X),
                 // top: Math.max(0, value.top - BUFFER_EDGE_SIZE_Y),
@@ -1309,14 +1313,14 @@ export class Viewport {
                 right: value.right + BUFFER_EDGE_SIZE_X,
                 bottom: value.bottom + BUFFER_EDGE_SIZE_Y,
             }
-        } else {
-            return {
-                top: value.top,
-                left: value.left,
-                right: value.right,
-                bottom: value.bottom,
-            }
-        }
+        // } else {
+        //     return {
+        //         top: value.top,
+        //         left: value.left,
+        //         right: value.right,
+        //         bottom: value.bottom,
+        //     }
+        // }
     }
 
     initCacheBounds(viewBound:IBoundRectNoAngle) {

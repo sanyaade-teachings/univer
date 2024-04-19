@@ -257,6 +257,7 @@ export class Font extends SheetExtension {
                     } else {
                         ctx.rectByPrecision(startX + 1 / scale, startY + 1 / scale, cellWidth - 2 / scale, cellHeight - 2 / scale);
                         ctx.clip();
+                        // console.log('  clear !!!!!!!!')
                         ctx.clearRectForTexture(
                             startX + 1 / scale,
                             startY + 1 / scale,
