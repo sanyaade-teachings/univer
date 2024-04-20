@@ -29,7 +29,7 @@ import type { UniverRenderingContext } from '../../context';
 import type { Engine } from '../../engine';
 import type { Scene } from '../../scene';
 import type { SceneViewer } from '../../scene-viewer';
-import { BUFFER_EDGE_SIZE, type Viewport } from '../../viewport';
+import { BUFFER_EDGE_SIZE_X, BUFFER_EDGE_SIZE_Y, type Viewport } from '../../viewport';
 import { Documents } from '../docs/document';
 import { SpreadsheetExtensionRegistry } from '../extension';
 import type { Background } from './extensions/background';
@@ -305,7 +305,8 @@ export class Spreadsheet extends SheetComponent {
         const { viewBound, cacheBounds, diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, shouldCacheUpdate, cacheCanvas, leftOrigin, topOrigin } = viewportBoundsInfo;
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
-        const bufferEdgeSizeX = BUFFER_EDGE_SIZE * scaleX / window.devicePixelRatio;
+        const bufferEdgeSizeX = BUFFER_EDGE_SIZE_X * scaleX / window.devicePixelRatio;
+        const bufferEdgeSizeY = BUFFER_EDGE_SIZE_Y * scaleY / window.devicePixelRatio;
         // mainCtx this._scene.getEngine()?.getCanvas().getContext();
 
 
@@ -350,7 +351,7 @@ export class Spreadsheet extends SheetComponent {
 
                     // 处理相对 viewportPosition 的偏移  回到 (0, 0) 单元格位置
                     // cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
-                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE, -topOrigin);
+                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE_X, -topOrigin + BUFFER_EDGE_SIZE_Y);
                     // cacheCtx.translate(bufferEdgeSizeX, 0)
 
                     // extension 绘制时按照内容的左上角计算, 不考虑 rowHeaderWidth
@@ -360,7 +361,7 @@ export class Spreadsheet extends SheetComponent {
                     cacheCtx.restore();
                 }
                 console.log('dh ', viewPortKey, dh, bottom,  top, columnHeaderHeight);
-                this._applyCacheFreeze(mainCtx, cacheCanvas, bufferEdgeSizeX, 0, dw, dh, left, top, dw, dh);
+                this._applyCacheFreeze(mainCtx, cacheCanvas, bufferEdgeSizeX, bufferEdgeSizeY, dw, dh, left, top, dw, dh);
                 // const pic = mainCtx.canvas.toDataURL();
                 // pic;
                 // //console.timeEnd('!!!viewMain_render!!!_111');
@@ -387,16 +388,23 @@ export class Spreadsheet extends SheetComponent {
 
 
                     // cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
-                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE, -topOrigin);
+                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE_X, -topOrigin + BUFFER_EDGE_SIZE_Y);
 
 
-                    // console.time('!!!viewMain_render_222---222');
+                    console.time('!!!viewMain_render_222---222');
                     if (shouldCacheUpdate) {
-                        const tr = cacheCtx.getTransform();
-                        for (let index = 0; index < cacheBounds.right; ) {
-                            cacheCtx.fillText( ''+index, index, 300)//-tr.f + 100)
-                            index = index + 100;
-                        }
+
+
+                        // 进入到这里的坐标, 从 sheet corner 右下角计算 也就是不算行头列头
+                        // const tr = cacheCtx.getTransform();
+                        // for (let index = 0; index < cacheBounds.right; ) {
+                        //     cacheCtx.fillText( ''+index, index, 280)//-tr.f + 100)
+                        //     cacheCtx.beginPath();
+                        //     cacheCtx.moveTo(index, 280); // 将画笔移动到起点
+                        //     cacheCtx.lineTo(index, 1000);     // 绘制直线到终点
+                        //     cacheCtx.stroke();               // 绘制直线
+                        //     index = index + 50;
+                        // }
 
                         for (const diffBound of diffCacheBounds) {
                             cacheCtx.save();
@@ -414,13 +422,13 @@ export class Spreadsheet extends SheetComponent {
 
 
                             // cacheCtx.clearRect(0, 0, 4000, 4000);
-                            console.log('xywh', x, x+w, 'trans', tr.e/tr.a, 'rs', tr.e/tr.a + x, 'diffX', diffRight - diffLeft, diffX)
+                            // console.log('xywh', x, x+w, 'trans', tr.e/tr.a, 'rs', tr.e/tr.a + x, 'diffX', diffRight - diffLeft, diffX)
 
                             cacheCtx.rectByPrecision(x, y, w, h);
-                            cacheCtx.fillStyle = 'rgba(220, 220, 255, 1)';
-                            cacheCtx.fill();
-                            cacheCtx.fillStyle = 'red';
-                            cacheCtx.fillText( ''+ x, x, 340)//-tr.f + 100)
+                            // cacheCtx.fillStyle = 'rgba(220, 220, 255, 1)';
+                            // cacheCtx.fill();
+                            // cacheCtx.fillStyle = 'red';
+                            // cacheCtx.fillText( ''+ x, x, 340)//-tr.f + 100)
                             cacheCtx.clip();
 
 
@@ -440,11 +448,11 @@ export class Spreadsheet extends SheetComponent {
                             cacheCtx.restore();
                         }
                     }
-                    // console.timeEnd('!!!viewMain_render_222---222');
+                    console.timeEnd('!!!viewMain_render_222---222');
                     this._refreshIncrementalState = false;
 
                 }
-                this._applyCacheFreeze(mainCtx, cacheCanvas, bufferEdgeSizeX, 0, dw, dh, left, top, dw, dh);
+                this._applyCacheFreeze(mainCtx, cacheCanvas, bufferEdgeSizeX, bufferEdgeSizeY, dw, dh, left, top, dw, dh);
 
             }
             cacheCtx.restore();
@@ -467,7 +475,7 @@ export class Spreadsheet extends SheetComponent {
                     cacheCtx.save();
                     // cacheCtx.setTransform(sceneTrans.convert2DOMMatrix2D());
                     cacheCtx.setTransform(mainCtx.getTransform());
-                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE, -topOrigin);
+                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE_X, -topOrigin + BUFFER_EDGE_SIZE_Y);
 
 
                     viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBounds;
@@ -476,7 +484,7 @@ export class Spreadsheet extends SheetComponent {
                     cacheCtx.restore();
                 }
                 // console.log('dh ', viewPortKey, dh, bottom,  top, columnHeaderHeight);
-                this._applyCacheFreeze(mainCtx, cacheCanvas, bufferEdgeSizeX, 0, dw, dh, left, top, dw, dh);
+                this._applyCacheFreeze(mainCtx, cacheCanvas, bufferEdgeSizeX, bufferEdgeSizeY, dw, dh, left, top, dw, dh);
                 // console.timeEnd(`${viewPortKey}_render!!!_111`);
             } else {
                 if(isDirty){
@@ -490,12 +498,12 @@ export class Spreadsheet extends SheetComponent {
                     this._refreshIncrementalState = true;
                     cacheCtx.setTransform(mainCtx.getTransform());
                     // cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
-                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE, -topOrigin);
+                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE_X, -topOrigin + BUFFER_EDGE_SIZE_Y);
 
 
 
                     // console.time(`${viewPortKey}_render!!!_222`);
-                    if (shouldCacheUpdate || 1) {
+                    if (shouldCacheUpdate) {
                         for (const diffBound of diffCacheBounds) {
                             const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
                             cacheCtx.save();
@@ -524,7 +532,7 @@ export class Spreadsheet extends SheetComponent {
 
                     this._refreshIncrementalState = false;
                 }
-                this._applyCacheFreeze(mainCtx, cacheCanvas, bufferEdgeSizeX, 0, dw, dh, left, top, dw, dh);
+                this._applyCacheFreeze(mainCtx, cacheCanvas, bufferEdgeSizeX, bufferEdgeSizeY, dw, dh, left, top, dw, dh);
             }
             cacheCtx.restore();
         }
