@@ -92,17 +92,17 @@ export class Spreadsheet extends SheetComponent {
         super(oKey, spreadsheetSkeleton);
         if (this._allowCache) {
 
-            this.onIsAddedToParentObserver.add((parent) => {
-                (parent as Scene)?.getEngine()?.onTransformChangeObservable.add(() => {
-                    this._resizeCacheCanvas();
-                });
-                this._resizeCacheCanvas();
-                this._addMakeDirtyToScroll();
+            // this.onIsAddedToParentObserver.add((parent) => {
+            //     (parent as Scene)?.getEngine()?.onTransformChangeObservable.add(() => {
+            //         this._resizeCacheCanvas();
+            //     });
+            //     this._resizeCacheCanvas();
+            //     this._addMakeDirtyToScroll();
 
-                (parent as Scene)?.getViewports().forEach(vp => vp.makeDirty());
-                window.scene = parent;
+            //     (parent as Scene)?.getViewports().forEach(vp => vp.makeDirty());
+            //     window.scene = parent;
 
-            });
+            // });
         }
 
         this._initialDefaultExtension();

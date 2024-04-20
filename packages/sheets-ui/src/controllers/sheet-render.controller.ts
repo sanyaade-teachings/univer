@@ -113,10 +113,6 @@ export class SheetRenderController extends Disposable {
                 const workbook = this._currentUniverService.getCurrentUniverSheetInstance();
                 const unitId = workbook.getUnitId();
 
-                // if(command.params?.range?) {
-                //     debugger
-                // }
-
                 if (COMMAND_LISTENER_SKELETON_CHANGE.includes(command.id)) {
                     const worksheet = workbook.getActiveSheet();
                     const sheetId = worksheet.getSheetId();
@@ -222,12 +218,10 @@ export class SheetRenderController extends Disposable {
         const dirtyBounds:IViewportBounds[] = [];
         for (let r of ranges) {
             let { startRow, endRow, startColumn, endColumn } = r;
-            let top = startRow == 0 ? 0: rowHeightAccumulation[startRow -1];
-            let bottom = rowHeightAccumulation[endRow];
-            let left = startColumn == 0 ? 0 : columnWidthAccumulation[startColumn -1];
-            let right = columnWidthAccumulation[endColumn];
-            // 有个细节需要注意，对于 spread内容区域来说 top 实际上从 20 开始，left 是从 46 开始
-
+            let top = startRow == 0 ? 0: rowHeightAccumulation[startRow -1] + columnHeaderHeight;
+            let bottom = rowHeightAccumulation[endRow] + columnHeaderHeight;
+            let left = startColumn == 0 ? 0 : columnWidthAccumulation[startColumn -1] + rowHeaderWidth;
+            let right = columnWidthAccumulation[endColumn] + rowHeaderWidth;
             dirtyBounds.push({top, left, bottom, right, width: right - left, height: bottom - top});
         }
         return dirtyBounds;
@@ -236,12 +230,8 @@ export class SheetRenderController extends Disposable {
     private dirtyViewBounds(viewports: Viewport[], dirtyBounds:IViewportBounds[]) {
         for (const vp of viewports) {
             for(const b of dirtyBounds) {
-                const {x, y} = vp.getTransformedScroll();
-                let {left, top}: { left: number, top: number }  = vp;
-                left += x;
-                top += y;
-                if(Tools.hasIntersectionBetweenTwoBounds({left, top, right: left + (vp.width || 0), bottom: top + (vp.height || 0)}, b)) {
-                    vp.makeDirty();
+                if(Tools.hasIntersectionBetweenTwoBounds(vp.cacheBound, b)) {
+                    vp.makeDirty(true);
                 }
             }
         }

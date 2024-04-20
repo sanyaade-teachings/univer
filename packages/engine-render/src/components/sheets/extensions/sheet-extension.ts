@@ -42,8 +42,8 @@ export class SheetExtension extends ComponentExtension<SpreadsheetSkeleton, SHEE
             return true;
         }
 
-        for (const range of diffRanges) {
-            const { startRow, startColumn, endRow, endColumn } = range;
+        for (const r of diffRanges) {
+            const { startRow, startColumn, endRow, endColumn } = r;
             const isIntersect = Rectangle.intersects(range, {
                 startRow,
                 endRow,

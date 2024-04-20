@@ -171,9 +171,8 @@ export class Viewport {
     /**
      * viewbound of cache area, cache area is slightly bigger than viewbound.
      */
-    private _cacheBound: IBoundRectNoAngle | null = null;
-
-    private _prevCacheBound: IBoundRectNoAngle | null = null;
+    private _cacheBound: IBoundRectNoAngle;
+    private _prevCacheBound: IBoundRectNoAngle;
 
     /**
      * bound of visible area
@@ -234,27 +233,27 @@ export class Viewport {
         this._spreadSheetResizeHandler();
 
         this.initCacheCanvas();
-        this.displayCache();
+        this._testDisplayCache();
     }
 
     initCacheCanvas() {
         if(['viewMain', 'viewMainLeft', 'viewMainLeftTop', 'viewMainTop'].includes(this.viewPortKey)) {
             this._cacheCanvas = new UniverCanvas();
-            const canvas = this._cacheCanvas.getCanvasEle();
-            const context = canvas.getContext('2d')!;
-            const borderWidth = 100;
-            const borderColor = 'lightblue';
+            // const canvas = this._cacheCanvas.getCanvasEle();
+            // const context = canvas.getContext('2d')!;
+            // const borderWidth = 100;
+            // const borderColor = 'lightblue';
 
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
+            // const canvasWidth = canvas.width;
+            // const canvasHeight = canvas.height;
 
-            context.strokeStyle = borderColor;
-            context.lineWidth = borderWidth;
-            context.strokeRect(0, 0, canvasWidth, canvasHeight);
+            // context.strokeStyle = borderColor;
+            // context.lineWidth = borderWidth;
+            // context.strokeRect(0, 0, canvasWidth, canvasHeight);
         }
     }
 
-    displayCache() {
+    _testDisplayCache() {
         const globalThis = window as any;
         if (!globalThis.cacheSet) {
             globalThis.cacheSet = new Set();
@@ -368,6 +367,14 @@ export class Viewport {
     private set right(num: number) {
         this._rightOrigin = num;
         this._right = toPx(num, this.scene.getParent()?.width);
+    }
+
+    get viewBound() {
+        return this._viewBound;
+    }
+
+    get cacheBound() {
+        return this._cacheBound;
     }
 
     enable() {
@@ -909,11 +916,10 @@ export class Viewport {
     }
 
     makeDirty(state?: boolean) {
-        if(state !== undefined) {
-            this._isDirty = state;
-        } else {
-            this._isDirty = true;
+        if(state == undefined) {
+            state = true;
         }
+        this._isDirty = state;
     }
 
     get isDirty() {
