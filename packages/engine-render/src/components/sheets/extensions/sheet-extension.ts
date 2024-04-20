@@ -37,14 +37,14 @@ export class SheetExtension extends ComponentExtension<SpreadsheetSkeleton, SHEE
         return getCellByIndex(rowIndex, columnIndex, rowHeightAccumulation, columnWidthAccumulation, dataMergeCache);
     }
 
-    isRenderDiffRangesByCell(range: IRange, diffRanges?: IRange[]) {
+    isRenderDiffRangesByCell(rangeP: IRange, diffRanges?: IRange[]) {
         if (diffRanges == null || diffRanges.length === 0) {
             return true;
         }
 
-        for (const r of diffRanges) {
-            const { startRow, startColumn, endRow, endColumn } = r;
-            const isIntersect = Rectangle.intersects(range, {
+        for (const range of diffRanges) {
+            const { startRow, startColumn, endRow, endColumn } = range;
+            const isIntersect = Rectangle.intersects(rangeP, {
                 startRow,
                 endRow,
                 startColumn,

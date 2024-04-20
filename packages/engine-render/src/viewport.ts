@@ -77,8 +77,8 @@ enum SCROLL_TYPE {
 }
 
 const MOUSE_WHEEL_SPEED_SMOOTHING_FACTOR = 3;
-const BUFFER_EDGE_SIZE_X = 100; // 500 的话存在数据不加载的问题
-const BUFFER_EDGE_SIZE_Y = 100; // 500 的话存在数据不加载的问题
+const BUFFER_EDGE_SIZE_X = 0; // 500 的话存在数据不加载的问题
+const BUFFER_EDGE_SIZE_Y = 0; // 500 的话存在数据不加载的问题
 export { BUFFER_EDGE_SIZE_X, BUFFER_EDGE_SIZE_Y };
 export class Viewport {
     /**
@@ -1266,22 +1266,22 @@ export class Viewport {
             bottom: yTo,
             right: xTo,
         };
-        let cacheBounds = this.expandBounds(viewBound)!;
+        let cacheBound = this.expandBounds(viewBound)!;
         if(!this._prevCacheBound) {
             this._prevCacheBound = this.expandBounds(viewBound);
         }
         const prevCacheBounds = this._prevCacheBound;
 
         let diffCacheBounds: IBoundRectNoAngle[] = [];// = this._diffViewBound(cacheBounds, prevCacheBounds);
-        const cacheDiffX = (prevCacheBounds?.left || 0) - cacheBounds.left;
-        const cacheDiffY = (prevCacheBounds?.top || 0) - cacheBounds.top;
+        const cacheDiffX = (prevCacheBounds?.left || 0) - cacheBound.left;
+        const cacheDiffY = (prevCacheBounds?.top || 0) - cacheBound.top;
         const cacheViewPortPosition = this.expandBounds(viewPortPosition);
 
         let shouldCacheUpdate = this._shouldCacheUpdate(this._viewBound, this._cacheBound, diffX, diffY);
         if(shouldCacheUpdate) {
-            cacheBounds = this.expandBounds(viewBound);
-            this._prevCacheBound = this._cacheBound || cacheBounds;
-            this._cacheBound = cacheBounds;
+            cacheBound = this.expandBounds(viewBound);
+            this._prevCacheBound = this._cacheBound || cacheBound;
+            this._cacheBound = cacheBound;
             diffCacheBounds = this._diffViewBound(this._cacheBound, this._prevCacheBound);
         }
         // let shouldCacheUpdate = 0b01;
@@ -1301,7 +1301,7 @@ export class Viewport {
             viewPortKey: this.viewPortKey,
             isDirty: this.isDirty,
             isForceDirty: this.isForceDirty,
-            cacheBounds,
+            cacheBounds: this.cacheBound,
             diffCacheBounds,
             cacheViewPortPosition,
             shouldCacheUpdate,

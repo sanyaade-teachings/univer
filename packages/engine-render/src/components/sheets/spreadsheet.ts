@@ -92,17 +92,17 @@ export class Spreadsheet extends SheetComponent {
         super(oKey, spreadsheetSkeleton);
         if (this._allowCache) {
 
-            // this.onIsAddedToParentObserver.add((parent) => {
-            //     (parent as Scene)?.getEngine()?.onTransformChangeObservable.add(() => {
-            //         this._resizeCacheCanvas();
-            //     });
-            //     this._resizeCacheCanvas();
-            //     this._addMakeDirtyToScroll();
+            this.onIsAddedToParentObserver.add((parent) => {
+                // (parent as Scene)?.getEngine()?.onTransformChangeObservable.add(() => {
+                //     this._resizeCacheCanvas();
+                // });
+                // this._resizeCacheCanvas();
+                // this._addMakeDirtyToScroll();
 
-            //     (parent as Scene)?.getViewports().forEach(vp => vp.makeDirty());
-            //     window.scene = parent;
+                // (parent as Scene)?.getViewports().forEach(vp => vp.makeDirty());
+                window.scene = parent;
 
-            // });
+            });
         }
 
         this._initialDefaultExtension();
@@ -396,15 +396,15 @@ export class Spreadsheet extends SheetComponent {
 
 
                         // 进入到这里的坐标, 从 sheet corner 右下角计算 也就是不算行头列头
-                        // const tr = cacheCtx.getTransform();
-                        // for (let index = 0; index < cacheBounds.right; ) {
-                        //     cacheCtx.fillText( ''+index, index, 280)//-tr.f + 100)
-                        //     cacheCtx.beginPath();
-                        //     cacheCtx.moveTo(index, 280); // 将画笔移动到起点
-                        //     cacheCtx.lineTo(index, 1000);     // 绘制直线到终点
-                        //     cacheCtx.stroke();               // 绘制直线
-                        //     index = index + 50;
-                        // }
+                        const tr = cacheCtx.getTransform();
+                        for (let index = 0; index < cacheBounds.right; ) {
+                            cacheCtx.fillText( ''+index, index, 280)//-tr.f + 100)
+                            cacheCtx.beginPath();
+                            cacheCtx.moveTo(index, 280); // 将画笔移动到起点
+                            cacheCtx.lineTo(index, 1000);     // 绘制直线到终点
+                            cacheCtx.stroke();               // 绘制直线
+                            index = index + 50;
+                        }
 
                         for (const diffBound of diffCacheBounds) {
                             cacheCtx.save();
@@ -425,10 +425,10 @@ export class Spreadsheet extends SheetComponent {
                             // console.log('xywh', x, x+w, 'trans', tr.e/tr.a, 'rs', tr.e/tr.a + x, 'diffX', diffRight - diffLeft, diffX)
 
                             cacheCtx.rectByPrecision(x, y, w, h);
-                            // cacheCtx.fillStyle = 'rgba(220, 220, 255, 1)';
-                            // cacheCtx.fill();
-                            // cacheCtx.fillStyle = 'red';
-                            // cacheCtx.fillText( ''+ x, x, 340)//-tr.f + 100)
+                            cacheCtx.fillStyle = 'rgba(220, 220, 255, 1)';
+                            cacheCtx.fill();
+                            cacheCtx.fillStyle = 'red';
+                            cacheCtx.fillText( ''+ x, x, 340)//-tr.f + 100)
                             cacheCtx.clip();
 
 
@@ -508,15 +508,21 @@ export class Spreadsheet extends SheetComponent {
                             const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
                             cacheCtx.save();
                             cacheCtx.beginPath();
-                            const x = diffLeft - (rowHeaderWidth * scaleX ) + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
+                            const x = diffLeft - (rowHeaderWidth) - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
                             const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                            const w = diffRight - diffLeft + (rowHeaderWidth * scaleX + FIX_ONE_PIXEL_BLUR_OFFSET * 2);
+                            const w = diffRight - diffLeft + (rowHeaderWidth) + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
                             const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
-                            cacheCtx.rectByPrecision(x, y, w, h);
 
+
+                            cacheCtx.rectByPrecision(x, y, w, h);
+                            // if(viewPortKey  === 'viewMainLeft') {
+                            //     console.log('xywh', x, y, w, h, diffBound)
+                            // }
+                            // cacheCtx.fillStyle = 'rgba(220, 220, 255, 1)';
+                            // cacheCtx.fill();
                             cacheCtx.clip();
                             // @ts-ignore
-                            this._draw(cacheCtx, {
+                            this.draw(cacheCtx, {
                                 viewBound: viewportBoundsInfo.cacheBounds,
                                 cacheBounds: viewportBoundsInfo.cacheBounds,
                                 diffBounds: [diffBound],

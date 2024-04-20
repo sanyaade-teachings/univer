@@ -88,17 +88,25 @@ export class Background extends SheetExtension {
                     //     return true;
                     // }
 
-                    if (
-                        !this.isRenderDiffRangesByCell(
+                    if (!this.isRenderDiffRangesByCell(
+                            // {
+                            //     startRow: mergeInfo.startRow,
+                            //     endRow: mergeInfo.endRow,
+                            //     startColumn: mergeInfo.startColumn,
+                            //     endColumn: mergeInfo.endColumn,
+                            // },
                             {
-                                startRow: mergeInfo.startRow,
-                                endRow: mergeInfo.endRow,
-                                startColumn: mergeInfo.startColumn,
-                                endColumn: mergeInfo.endColumn,
+                                startRow: rowIndex,
+                                endRow: rowIndex,
+                                startColumn: columnIndex,
+                                endColumn: columnIndex,
                             },
                             diffRanges
                         )
                     ) {
+                        if(diffRanges && diffRanges[0].endColumn <= 12 && mergeInfo.startRow > 2 && mergeInfo.endColumn < 12) {
+                            debugger
+                        }
                         return true;
                     }
 
