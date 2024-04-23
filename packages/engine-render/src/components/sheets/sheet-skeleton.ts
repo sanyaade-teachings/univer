@@ -558,7 +558,7 @@ export class SpreadsheetSkeleton extends Skeleton {
     }
 
     getRowColumnSegment(bounds?: IViewportInfo) {
-        return this._getBounding(this._rowHeightAccumulation, this._columnWidthAccumulation, bounds?.cacheBounds);
+        return this._getBounding(this._rowHeightAccumulation, this._columnWidthAccumulation, bounds?.cacheBound);
         // return this._getBounding(this._rowHeightAccumulation, this._columnWidthAccumulation, bounds?.viewBound);
     }
 

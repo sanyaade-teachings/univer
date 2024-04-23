@@ -877,7 +877,7 @@ export interface IViewportInfo {
     isDirty?: boolean;
     isForceDirty?: boolean;
 
-    cacheBounds: IBoundRectNoAngle;
+    cacheBound: IBoundRectNoAngle;
     diffCacheBounds: IBoundRectNoAngle[];
     cacheViewPortPosition: IBoundRectNoAngle;
 

@@ -149,13 +149,13 @@ export class Spreadsheet extends SheetComponent {
         const diffRanges = this._refreshIncrementalState && bounds?.diffBounds
             ? bounds?.diffBounds?.map((bound) => spreadsheetSkeleton.getRowColumnSegmentByViewBound(bound))
             : undefined;
-        const viewRanges = [spreadsheetSkeleton.getRowColumnSegmentByViewBound(bounds?.cacheBounds)];
+        const viewRanges = [spreadsheetSkeleton.getRowColumnSegmentByViewBound(bounds?.cacheBound)];
 
         const extensions = this.getExtensionsByOrder();
 
         if((bounds?.viewPortKey === 'viewMain' || bounds?.viewPortKey === 'viewMainLeft')) {
             // console.log(bounds?.viewPortKey, 'diffRange count', diffRanges.length, 'diffY StartRow', diffRanges[0].startRow, 'diffY startColumn', diffRanges[0].startColumn , ':::::height', diffRanges[0].endRow - diffRanges[0].startRow,':::::width', diffRanges[0].endColumn - diffRanges[0].startColumn);
-            console.log(bounds?.viewPortKey, ' ranges', viewRanges[0],'diffRanges', diffRanges, 'bounds', bounds?.cacheBounds, bounds?.viewBound);
+            console.log(bounds?.viewPortKey, ' ranges', viewRanges[0],'diffRanges', diffRanges, 'bounds', bounds?.cacheBound, bounds?.viewBound);
         }
 
         const timeKey = `diffRange ${bounds?.viewPortKey}!!ext!!`;
@@ -302,7 +302,7 @@ export class Spreadsheet extends SheetComponent {
     }
 
     renderByViewport(mainCtx: UniverRenderingContext, viewportBoundsInfo: IViewportInfo, spreadsheetSkeleton: SpreadsheetSkeleton) {
-        const { viewBound, cacheBounds, diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, shouldCacheUpdate, cacheCanvas, leftOrigin, topOrigin } = viewportBoundsInfo;
+        const { viewBound, cacheBound: cacheBounds, diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, shouldCacheUpdate, cacheCanvas, leftOrigin, topOrigin } = viewportBoundsInfo;
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
         const bufferEdgeSizeX = BUFFER_EDGE_SIZE_X * scaleX / window.devicePixelRatio;
@@ -341,7 +341,7 @@ export class Spreadsheet extends SheetComponent {
                     const m = mainCtx.getTransform();
                     cacheCtx.setTransform(m.a,m.b, m.c, m.d, m.e, m.f);
                     // cacheCtx.transform(1, 0, 0, 1, BUFFER_EDGE_SIZE, BUFFER_EDGE_SIZE);
-                    viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBounds;
+                    viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBound;
                     viewportBoundsInfo.viewPortPosition = viewportBoundsInfo.cacheViewPortPosition;
                     // cacheCtx.translate(-viewportBoundsInfo.viewBound.left + rowHeaderWidth, -viewportBoundsInfo.viewBound.top + columnHeaderHeight);
 
@@ -397,20 +397,19 @@ export class Spreadsheet extends SheetComponent {
                         for (const diffBound of diffCacheBounds) {
                             cacheCtx.save();
 
-                            const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
+                            let { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
                             cacheCtx.beginPath();
 
                             // 再次注意!  draw 的时候 ctx.translate 单元格偏移是相对 spreadsheet content
                             // 不考虑 rowHeaderWidth
                             // 但是 diffBounds 是包括 rowHeader 信息
+                            diffLeft -= BUFFER_EDGE_SIZE_X; // 必须扩大范围 不然存在空白贴图
+                            diffTop -= BUFFER_EDGE_SIZE_Y;
                             const x = diffLeft - (rowHeaderWidth) - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
                             const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
                             const w = diffRight - diffLeft + (rowHeaderWidth) + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
                             const h = diffBottom - diffTop + columnHeaderHeight + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
 
-
-                            // cacheCtx.clearRect(0, 0, 4000, 4000);
-                            // console.log('xywh', x, x+w, 'trans', tr.e/tr.a, 'rs', tr.e/tr.a + x, 'diffX', diffRight - diffLeft, diffX)
 
                             cacheCtx.rectByPrecision(x, y, w, h);
                             // cacheCtx.fillStyle = 'rgba(220, 220, 255, 1)';
@@ -423,8 +422,8 @@ export class Spreadsheet extends SheetComponent {
                             //@ts-ignore
                             this.draw(cacheCtx, {
                                 // viewBound 是这一帧的区域
-                                viewBound: viewportBoundsInfo.cacheBounds,
-                                cacheBounds: viewportBoundsInfo.cacheBounds,
+                                viewBound: viewportBoundsInfo.cacheBound,
+                                cacheBound: viewportBoundsInfo.cacheBound,
                                 diffBounds: [diffBound],
                                 // diffBounds: diffCacheBounds,
                                 // diffCacheBounds,
@@ -477,7 +476,7 @@ export class Spreadsheet extends SheetComponent {
                     cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE_X, -topOrigin + BUFFER_EDGE_SIZE_Y);
 
 
-                    viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBounds;
+                    viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBound;
                     this._draw(cacheCtx, viewportBoundsInfo);
 
                     cacheCtx.restore();
@@ -504,9 +503,11 @@ export class Spreadsheet extends SheetComponent {
                     // console.time(`${viewPortKey}_render!!!_222`);
                     if (shouldCacheUpdate) {
                         for (const diffBound of diffCacheBounds) {
-                            const { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
+                            let { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
                             cacheCtx.save();
                             cacheCtx.beginPath();
+                            diffLeft -= BUFFER_EDGE_SIZE_X; // 必须扩大范围 不然存在空白贴图
+                            diffTop -= BUFFER_EDGE_SIZE_Y;
                             const x = diffLeft - (rowHeaderWidth) - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
                             const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
                             const w = diffRight - diffLeft + (rowHeaderWidth) + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
@@ -522,8 +523,8 @@ export class Spreadsheet extends SheetComponent {
                             cacheCtx.clip();
                             // @ts-ignore
                             this.draw(cacheCtx, {
-                                viewBound: viewportBoundsInfo.cacheBounds,
-                                cacheBounds: viewportBoundsInfo.cacheBounds,
+                                viewBound: viewportBoundsInfo.cacheBound,
+                                cacheBound: viewportBoundsInfo.cacheBound,
                                 diffBounds: [diffBound],
                                 diffX: viewportBoundsInfo.diffX,
                                 diffY: viewportBoundsInfo.diffY,
@@ -557,9 +558,6 @@ export class Spreadsheet extends SheetComponent {
             return;
         }
 
-        if(bounds.viewPortKey === 'viewMain') {
-            bounds.viewBound = bounds.cacheBounds;
-        }
         spreadsheetSkeleton.calculateWithoutClearingCache(bounds);
 
         const segment = spreadsheetSkeleton.rowColumnSegment;

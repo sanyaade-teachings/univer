@@ -77,8 +77,8 @@ enum SCROLL_TYPE {
 }
 
 const MOUSE_WHEEL_SPEED_SMOOTHING_FACTOR = 3;
-const BUFFER_EDGE_SIZE_X = 0; // 500 的话存在数据不加载的问题
-const BUFFER_EDGE_SIZE_Y = 0; // 500 的话存在数据不加载的问题
+const BUFFER_EDGE_SIZE_X = 100;
+const BUFFER_EDGE_SIZE_Y = 50;
 export { BUFFER_EDGE_SIZE_X, BUFFER_EDGE_SIZE_Y };
 export class Viewport {
     /**
@@ -165,14 +165,14 @@ export class Viewport {
 
     private _isRelativeY: boolean = false;
 
-    private _preViewportBound: Nullable<IViewportInfo>;
+    private _preViewportInfo: Nullable<IViewportInfo>;
 
 
     /**
      * viewbound of cache area, cache area is slightly bigger than viewbound.
      */
     private _cacheBound: IBoundRectNoAngle;
-    private _prevCacheBound: IBoundRectNoAngle;
+    private _preCacheBound: IBoundRectNoAngle;
 
     /**
      * bound of visible area
@@ -706,8 +706,11 @@ export class Viewport {
         this.makeDirty(false);
         this.makeForceDirty(false);
 
+        this._preViewportInfo = viewPortInfo;
         this._preViewBound = viewPortInfo.viewBound;
-        this._preViewportBound = viewPortInfo;
+        if(viewPortInfo.shouldCacheUpdate) {
+            this._preCacheBound = viewPortInfo.cacheBound;
+        }
         mainCtx.restore();
 
         if (this._scrollBar && isMaxLayer) {
@@ -719,6 +722,183 @@ export class Viewport {
         }
 
         this._scrollRendered();
+    }
+
+    private _calViewportRelativeBounding(): IViewportInfo {
+        if (this.isActive === false) {
+            return {
+                viewBound: {
+                    left: -1,
+                    top: -1,
+                    right: -1,
+                    bottom: -1,
+                },
+                diffBounds: [],
+                diffX: -1,
+                diffY: -1,
+                viewPortPosition: {
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    right: 0,
+                },
+                viewPortKey: this.viewPortKey,
+                isDirty: this.isDirty,
+                isForceDirty: this.isForceDirty,
+                cacheBound: {
+                    left: -1,
+                    top: -1,
+                    right: -1,
+                    bottom: -1,
+                },
+                diffCacheBounds: [],
+                cacheViewPortPosition: {
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    right: 0,
+                },
+                shouldCacheUpdate: 0,
+                sceneTrans:  Transform.create([1, 0, 0, 1, 0, 0])
+            } satisfies IViewportInfo;
+        }
+
+        const sceneTrans = this._scene.transform.clone();
+
+        const m = sceneTrans.getMatrix();
+
+        // const scaleFromX = this._isRelativeX ? (m[0] < 1 ? m[0] : 1) : 1;
+
+        // const scaleFromY = this._isRelativeY ? (m[3] < 1 ? m[3] : 1) : 1;
+
+        // const scaleToX = this._isRelativeX ? 1 : m[0] < 1 ? m[0] : 1;
+
+        // const scaleToY = this._isRelativeY ? 1 : m[3] < 1 ? m[3] : 1;
+
+        let width = this._width;
+
+        let height = this._height;
+
+        const size = this._getViewPortSize();
+
+        // if (m[0] > 1) {
+            width = size.width;
+        // }
+
+        // if (m[3] > 1) {
+            height = size.height;
+        // }
+
+        const xFrom: number = this.left;
+        const xTo: number = ((width || 0) + this.left);
+        const yFrom: number = this.top;
+        const yTo: number = ((height || 0) + this.top);
+        // console.log('height:::', this.viewPortKey, size.height, height, yTo)
+        /**
+         * @DR-Univer The coordinates here need to be consistent with the clip in the render,
+         * which may be caused by other issues that will be optimized later.
+         */
+        // const sceneTrans = this._scene.transform.clone();
+        // const m = sceneTrans.getMatrix();
+        // const { scaleX, scaleY } = this._getBoundScale(m[0], m[3]);
+
+        // let differenceX = 0;
+
+        // let differenceY = 0;
+
+        // const ratioScrollX = this._scrollBar?.ratioScrollX ?? 1;
+
+        // const ratioScrollY = this._scrollBar?.ratioScrollY ?? 1;
+
+        // if (this._preScrollX != null) {
+        //     differenceX = (this._preScrollX - this.scrollX) / ratioScrollX;
+        // }
+
+        // if (this._preScrollY != null) {
+        //     differenceY = (this._preScrollY - this.scrollY) / ratioScrollY;
+        // }
+
+        // this.getRelativeVector 加上了 scroll 后的坐标
+        const topLeft = this.getRelativeVector(Vector2.FromArray([xFrom, yFrom]));
+        const bottomRight = this.getRelativeVector(Vector2.FromArray([xTo, yTo]));
+        // if(this.viewPortKey == 'viewMain' || this.viewPortKey == 'viewMainLeft'){
+
+        //     console.log('yTo ', this.viewPortKey, yTo, 'bottomRight', bottomRight.y, 'height', height, 'top', this.top)
+        // }
+
+
+        const viewBound = {
+            top: topLeft.y,
+            left: topLeft.x,
+            right: bottomRight.x,
+            bottom: bottomRight.y,
+        };
+        this._viewBound = viewBound;
+        const preViewBound = this._preViewportInfo?.viewBound;
+        const diffBounds = this._diffViewBound(viewBound, preViewBound);
+        const diffX = (preViewBound?.left || 0) - viewBound.left;
+        const diffY = (preViewBound?.top || 0) - viewBound.top;
+        const viewPortPosition = {
+            top: yFrom,
+            left: xFrom,
+            bottom: yTo,
+            right: xTo,
+        };
+        let cacheBound = this.expandBounds(viewBound)!;
+        this._cacheBound = cacheBound;
+        if(!this._preCacheBound) {
+            this._preCacheBound = this.expandBounds(viewBound);
+        }
+        let diffCacheBounds: IBoundRectNoAngle[] = [];// = this._diffViewBound(cacheBounds, prevCacheBounds);
+        // const prevCacheBounds = this._prevCacheBound;
+        // const cacheDiffX = (prevCacheBounds?.left || 0) - cacheBound.left;
+        // const cacheDiffY = (prevCacheBounds?.top || 0) - cacheBound.top;
+        // this._prevCacheBound.left += diffX;
+        // this._prevCacheBound.right += diffX;
+        // console.log('prev cache bound', this._preCacheBound.left, this._preCacheBound.right)
+        const cacheViewPortPosition = this.expandBounds(viewPortPosition);
+
+        let shouldCacheUpdate = this._shouldCacheUpdate(viewBound, this._preCacheBound, diffX, diffY);
+        if(shouldCacheUpdate) {
+            diffCacheBounds = this._diffViewBound(cacheBound, this._preCacheBound);
+        }
+        if(this.viewPortKey === 'viewMain') {
+            console.log('shouldCacheUpdate', shouldCacheUpdate)
+            // if(diffX < 0) {
+            //     if(shouldCacheUpdate ) {
+            //         console.log('shouldCacheUpdate',shouldCacheUpdate, this._preCacheBound.right, diffCacheBounds.length && diffCacheBounds[0].left)
+            //     } else {
+            //         console.log(`%cError!`,  'background-color: red; color: white', this._preCacheBound.right, diffCacheBounds.length && diffCacheBounds[0].left);
+            //     }
+            // }
+        }
+        // let shouldCacheUpdate = 0b01;
+        // if(Math.abs(cacheDiffX) < BUFFER_EDGE_SIZE_X && Math.abs(cacheDiffY) < BUFFER_EDGE_SIZE_Y ) {
+        //     shouldCacheUpdate = 0;
+        // } else {
+        //     shouldCacheUpdate = 1;
+        //     this._prevCacheBound = this._cacheBound;
+        //     diffCacheBounds = this._diffViewBound(cacheBounds, this._prevCacheBound);
+        // }
+        return {
+            viewBound,
+            diffBounds,
+            diffX,
+            diffY,
+            viewPortPosition,
+            viewPortKey: this.viewPortKey,
+            isDirty: this.isDirty,
+            isForceDirty: this.isForceDirty,
+            cacheBound: this.cacheBound,
+            diffCacheBounds,
+            cacheViewPortPosition,
+            shouldCacheUpdate,
+            sceneTrans,
+            cacheCanvas: this._cacheCanvas!,
+            leftOrigin: this._leftOrigin,
+            topOrigin: this._topOrigin,
+
+        }  satisfies IViewportInfo;
     }
 
     getBounding() {
@@ -990,20 +1170,13 @@ export class Viewport {
         } else {
             width = (this._widthOrigin || 0) * scaleX;
         }
-        // if(this.viewPortKey == 'viewMain' || this.viewPortKey == 'viewMainLeft') {
-        //     console.log(this.viewPortKey, 'parentHeight', parentHeight, this._top, parentHeight - (this._top + this._bottom), (this._heightOrigin || 0) * scaleY);
-        // }
+
         if (this._isRelativeY) {
             height = parentHeight - (this._top + this._bottom);
         } else {
             height = (this._heightOrigin || 0) * scaleY;
         }
 
-        // if(top != this._top) {
-        //     console.log('_resizeCacheCanvasAndScrollBar!!!!!!!1')
-        // }
-        // this._left = left;
-        // this._top = top;
         this._width = width;
         this._height = height;
 
@@ -1146,173 +1319,6 @@ export class Viewport {
         return limited;
     }
 
-    private _calViewportRelativeBounding(): IViewportInfo {
-        if (this.isActive === false) {
-            return {
-                viewBound: {
-                    left: -1,
-                    top: -1,
-                    right: -1,
-                    bottom: -1,
-                },
-                diffBounds: [],
-                diffX: -1,
-                diffY: -1,
-                viewPortPosition: {
-                    top: 0,
-                    left: 0,
-                    bottom: 0,
-                    right: 0,
-                },
-                viewPortKey: this.viewPortKey,
-                isDirty: this.isDirty,
-                isForceDirty: this.isForceDirty,
-                cacheBounds: {
-                    left: -1,
-                    top: -1,
-                    right: -1,
-                    bottom: -1,
-                },
-                diffCacheBounds: [],
-                cacheViewPortPosition: {
-                    top: 0,
-                    left: 0,
-                    bottom: 0,
-                    right: 0,
-                },
-                shouldCacheUpdate: 0,
-                sceneTrans:  Transform.create([1, 0, 0, 1, 0, 0])
-            } satisfies IViewportInfo;
-        }
-
-        const sceneTrans = this._scene.transform.clone();
-
-        const m = sceneTrans.getMatrix();
-
-        // const scaleFromX = this._isRelativeX ? (m[0] < 1 ? m[0] : 1) : 1;
-
-        // const scaleFromY = this._isRelativeY ? (m[3] < 1 ? m[3] : 1) : 1;
-
-        // const scaleToX = this._isRelativeX ? 1 : m[0] < 1 ? m[0] : 1;
-
-        // const scaleToY = this._isRelativeY ? 1 : m[3] < 1 ? m[3] : 1;
-
-        let width = this._width;
-
-        let height = this._height;
-
-        const size = this._getViewPortSize();
-
-        // if (m[0] > 1) {
-            width = size.width;
-        // }
-
-        // if (m[3] > 1) {
-            height = size.height;
-        // }
-
-        const xFrom: number = this.left;
-        const xTo: number = ((width || 0) + this.left);
-        const yFrom: number = this.top;
-        const yTo: number = ((height || 0) + this.top);
-        // console.log('height:::', this.viewPortKey, size.height, height, yTo)
-        /**
-         * @DR-Univer The coordinates here need to be consistent with the clip in the render,
-         * which may be caused by other issues that will be optimized later.
-         */
-        // const sceneTrans = this._scene.transform.clone();
-        // const m = sceneTrans.getMatrix();
-        // const { scaleX, scaleY } = this._getBoundScale(m[0], m[3]);
-
-        // let differenceX = 0;
-
-        // let differenceY = 0;
-
-        // const ratioScrollX = this._scrollBar?.ratioScrollX ?? 1;
-
-        // const ratioScrollY = this._scrollBar?.ratioScrollY ?? 1;
-
-        // if (this._preScrollX != null) {
-        //     differenceX = (this._preScrollX - this.scrollX) / ratioScrollX;
-        // }
-
-        // if (this._preScrollY != null) {
-        //     differenceY = (this._preScrollY - this.scrollY) / ratioScrollY;
-        // }
-
-        // this.getRelativeVector 加上了 scroll 后的坐标
-        const topLeft = this.getRelativeVector(Vector2.FromArray([xFrom, yFrom]));
-        const bottomRight = this.getRelativeVector(Vector2.FromArray([xTo, yTo]));
-        // if(this.viewPortKey == 'viewMain' || this.viewPortKey == 'viewMainLeft'){
-
-        //     console.log('yTo ', this.viewPortKey, yTo, 'bottomRight', bottomRight.y, 'height', height, 'top', this.top)
-        // }
-
-
-        const viewBound = {
-            top: topLeft.y,
-            left: topLeft.x,
-            right: bottomRight.x,
-            bottom: bottomRight.y,
-        };
-        this._viewBound = viewBound;
-        const preViewBound = this._preViewportBound?.viewBound;
-        const diffBounds = this._diffViewBound(viewBound, preViewBound);
-        const diffX = (preViewBound?.left || 0) - viewBound.left;
-        const diffY = (preViewBound?.top || 0) - viewBound.top;
-        const viewPortPosition = {
-            top: yFrom,
-            left: xFrom,
-            bottom: yTo,
-            right: xTo,
-        };
-        let cacheBound = this.expandBounds(viewBound)!;
-        if(!this._prevCacheBound) {
-            this._prevCacheBound = this.expandBounds(viewBound);
-        }
-        const prevCacheBounds = this._prevCacheBound;
-
-        let diffCacheBounds: IBoundRectNoAngle[] = [];// = this._diffViewBound(cacheBounds, prevCacheBounds);
-        const cacheDiffX = (prevCacheBounds?.left || 0) - cacheBound.left;
-        const cacheDiffY = (prevCacheBounds?.top || 0) - cacheBound.top;
-        const cacheViewPortPosition = this.expandBounds(viewPortPosition);
-
-        let shouldCacheUpdate = this._shouldCacheUpdate(this._viewBound, this._cacheBound, diffX, diffY);
-        if(shouldCacheUpdate) {
-            cacheBound = this.expandBounds(viewBound);
-            this._prevCacheBound = this._cacheBound || cacheBound;
-            this._cacheBound = cacheBound;
-            diffCacheBounds = this._diffViewBound(this._cacheBound, this._prevCacheBound);
-        }
-        // let shouldCacheUpdate = 0b01;
-        // if(Math.abs(cacheDiffX) < BUFFER_EDGE_SIZE_X && Math.abs(cacheDiffY) < BUFFER_EDGE_SIZE_Y ) {
-        //     shouldCacheUpdate = 0;
-        // } else {
-        //     shouldCacheUpdate = 1;
-        //     this._prevCacheBound = this._cacheBound;
-        //     diffCacheBounds = this._diffViewBound(cacheBounds, this._prevCacheBound);
-        // }
-        return {
-            viewBound,
-            diffBounds,
-            diffX,
-            diffY,
-            viewPortPosition,
-            viewPortKey: this.viewPortKey,
-            isDirty: this.isDirty,
-            isForceDirty: this.isForceDirty,
-            cacheBounds: this.cacheBound,
-            diffCacheBounds,
-            cacheViewPortPosition,
-            shouldCacheUpdate,
-            sceneTrans,
-            cacheCanvas: this._cacheCanvas!,
-            leftOrigin: this._leftOrigin,
-            topOrigin: this._topOrigin,
-
-        }  satisfies IViewportInfo;
-    }
-
     expandBounds(value: {top:number, left: number, bottom: number, right: number}) {
         // if(this.viewPortKey === 'viewMain') {
             return {
@@ -1343,24 +1349,25 @@ export class Viewport {
     updateCacheBounds(viewBound?:IBoundRectNoAngle) {
         if(viewBound) {
             this._cacheBound = this.expandBounds(viewBound);
-        } else if(this._preViewportBound){
-            this._cacheBound = this.expandBounds(this._preViewportBound?.viewBound);
+        } else if(this._preViewportInfo){
+            this._cacheBound = this.expandBounds(this._preViewportInfo?.viewBound);
         }
     }
 
     private _shouldCacheUpdate(viewBound: IBoundRectNoAngle, cacheBounds:
         IBoundRectNoAngle | null, diffX: number, diffY: number): number {
         if (!cacheBounds) return 0b01;
-        const viewBoundOutCacheArea = !(viewBound.right < cacheBounds.right && viewBound.top > cacheBounds.top
-            && viewBound.left > cacheBounds.left && viewBound.bottom < cacheBounds.bottom) ? 0b01 : 0b00;
+        const viewBoundOutCacheArea = !(viewBound.right <= cacheBounds.right && viewBound.top >= cacheBounds.top
+            && viewBound.left >= cacheBounds.left && viewBound.bottom <= cacheBounds.bottom) ? 0b01 : 0b00;
 
-        const edge = BUFFER_EDGE_SIZE_X / 2;
-        const nearEdge = (diffX < 0 && Math.abs(viewBound.right - cacheBounds.right) < edge ||
-            diffX > 0 && Math.abs(viewBound.left - cacheBounds.left) < edge ||
+        const edgeX = BUFFER_EDGE_SIZE_X / 2;
+        const edgeY = BUFFER_EDGE_SIZE_Y / 2;
+        const nearEdge = (diffX < 0 && Math.abs(viewBound.right - cacheBounds.right) < edgeX ||
+            diffX > 0 && Math.abs(viewBound.left - cacheBounds.left) < edgeX ||
             // 滚动条向上, 向上往回滚
-            diffY > 0 && Math.abs(viewBound.top - cacheBounds.top) < edge ||
+            diffY > 0 && Math.abs(viewBound.top - cacheBounds.top) < edgeY ||
             // 滚动条向下, 让更多下方的内容呈现到 spread 中,
-            diffY < 0 && Math.abs(viewBound.bottom - cacheBounds.bottom) < edge) ? 0b10 : 0b00;
+            diffY < 0 && Math.abs(viewBound.bottom - cacheBounds.bottom) < edgeY) ? 0b10 : 0b00;
 
         const shouldCacheUpdate = nearEdge | viewBoundOutCacheArea;
 

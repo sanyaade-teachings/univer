@@ -257,9 +257,9 @@ export class Font extends SheetExtension {
                     } else {
                         ctx.rectByPrecision(startX + 1 / scale, startY + 1 / scale, cellWidth - 2 / scale, cellHeight - 2 / scale);
                         ctx.clip();
-                        if(rowIndex < 30 && rowIndex > 10) {
-                            console.log('background font clear!!', rowIndex, columnIndex, String.fromCharCode('A'.charCodeAt(0) + columnIndex))
-                        }
+                        // if(rowIndex < 30 && rowIndex > 10) {
+                        //     console.log('background font clear!!', rowIndex, columnIndex, String.fromCharCode('A'.charCodeAt(0) + columnIndex))
+                        // }
                         ctx.clearRectForTexture(
                             startX + 1 / scale,
                             startY + 1 / scale,
@@ -273,7 +273,7 @@ export class Font extends SheetExtension {
                     ctx.restore();
                 });
             });
-        console.log('FontExtension', viewPortKey, 'count', countAll, countCalc)
+        // console.log('FontExtension', viewPortKey, 'count', countAll, countCalc)
         ctx.restore();
     }
 

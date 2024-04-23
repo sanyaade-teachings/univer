@@ -47,7 +47,7 @@ export class SceneViewer extends BaseObject {
         }
 
         if (bounds) {
-            const { left, top, right, bottom } = bounds.cacheBounds;
+            const { left, top, right, bottom } = bounds.cacheBound;
 
             if (
                 this.width + this.strokeWidth + this.left < left ||
