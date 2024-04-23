@@ -394,18 +394,6 @@ export class Spreadsheet extends SheetComponent {
                     console.time('!!!viewMain_render_222---222');
                     if (shouldCacheUpdate) {
 
-
-                        // 进入到这里的坐标, 从 sheet corner 右下角计算 也就是不算行头列头
-                        const tr = cacheCtx.getTransform();
-                        for (let index = 0; index < cacheBounds.right; ) {
-                            cacheCtx.fillText( ''+index, index, 280)//-tr.f + 100)
-                            cacheCtx.beginPath();
-                            cacheCtx.moveTo(index, 280); // 将画笔移动到起点
-                            cacheCtx.lineTo(index, 1000);     // 绘制直线到终点
-                            cacheCtx.stroke();               // 绘制直线
-                            index = index + 50;
-                        }
-
                         for (const diffBound of diffCacheBounds) {
                             cacheCtx.save();
 
@@ -425,8 +413,8 @@ export class Spreadsheet extends SheetComponent {
                             // console.log('xywh', x, x+w, 'trans', tr.e/tr.a, 'rs', tr.e/tr.a + x, 'diffX', diffRight - diffLeft, diffX)
 
                             cacheCtx.rectByPrecision(x, y, w, h);
-                            cacheCtx.fillStyle = 'rgba(220, 220, 255, 1)';
-                            cacheCtx.fill();
+                            // cacheCtx.fillStyle = 'rgba(220, 220, 255, 1)';
+                            // cacheCtx.fill();
                             cacheCtx.fillStyle = 'red';
                             cacheCtx.fillText( ''+ x, x, 340)//-tr.f + 100)
                             cacheCtx.clip();
@@ -450,6 +438,17 @@ export class Spreadsheet extends SheetComponent {
                     }
                     console.timeEnd('!!!viewMain_render_222---222');
                     this._refreshIncrementalState = false;
+
+                    // 进入到这里的坐标, 从 sheet corner 右下角计算 也就是不算行头列头
+                    const tr = cacheCtx.getTransform();
+                    for (let index = 0; index < cacheBounds.right; ) {
+                        cacheCtx.fillText( ''+index, index, 280)//-tr.f + 100)
+                        cacheCtx.beginPath();
+                        cacheCtx.moveTo(index, 280); // 将画笔移动到起点
+                        cacheCtx.lineTo(index, 1000);     // 绘制直线到终点
+                        cacheCtx.stroke();               // 绘制直线
+                        index = index + 50;
+                    }
 
                 }
                 this._applyCacheFreeze(mainCtx, cacheCanvas, bufferEdgeSizeX, bufferEdgeSizeY, dw, dh, left, top, dw, dh);

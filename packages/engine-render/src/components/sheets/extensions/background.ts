@@ -72,8 +72,12 @@ export class Background extends SheetExtension {
 
                 ctx.fillStyle = rgb || getColor([255, 255, 255])!;
                 ctx.beginPath();
-                backgroundCache.forValue((rowIndex, columnIndex) => {
 
+                const backgroundPaths = new Path2D();
+                backgroundCache.forValue((rowIndex, columnIndex) => {
+                    // 当前单元格不在视野范围内, 提前退出
+                    // 和 font 不同的是, 不需要考虑合并单元格且单元格横跨 viewport 的情况.
+                    // 因为即使合并后, 也会进入 forValue 迭代, 此刻单元格状态是 isMerged, 也能从 cellInfo 中获取颜色信息
                     if(!inViewRanges(viewRanges!, rowIndex, columnIndex)) {
                         return true;
                     }
@@ -84,53 +88,53 @@ export class Background extends SheetExtension {
                     }
                     let { startY, endY, startX, endX } = cellInfo;
                     const { isMerged, isMergedMainCell, mergeInfo } = cellInfo;
+
+                    // 合并后的单元格, 非左上角单元格(因为在)
                     // if (isMerged) {
                     //     return true;
                     // }
+                    // // 合并单元格, 但是区域是合并的左上角
+                    // if (isMergedMainCell) {
+                    //     startY = mergeInfo.startY;
+                    //     endY = mergeInfo.endY;
+                    //     startX = mergeInfo.startX;
+                    //     endX = mergeInfo.endX;
+                    // }
 
-                    if (!this.isRenderDiffRangesByCell(
-                            // {
-                            //     startRow: mergeInfo.startRow,
-                            //     endRow: mergeInfo.endRow,
-                            //     startColumn: mergeInfo.startColumn,
-                            //     endColumn: mergeInfo.endColumn,
-                            // },
-                            {
-                                startRow: rowIndex,
-                                endRow: rowIndex,
-                                startColumn: columnIndex,
-                                endColumn: columnIndex,
-                            },
-                            diffRanges
-                        )
-                    ) {
-                        if(diffRanges && diffRanges[0].endColumn <= 12 && mergeInfo.startRow > 2 && mergeInfo.endColumn < 12) {
-                            debugger
-                        }
-                        return true;
-                    }
-
-                    // if (
-                    //     !this.isRenderDiffRangesByColumn(mergeInfo.startColumn, diffRanges) &&
-                    //     !this.isRenderDiffRangesByColumn(mergeInfo.endColumn, diffRanges)
+                    // 水平方向和 diffRange 没有交集就提前退出
+                    // 然而不能这么做  Y 方向滚动也可能存在问题
+                    // if (!this.isRowInDiffRanges(
+                    //         // {
+                    //         //     startRow: mergeInfo.startRow,
+                    //         //     endRow: mergeInfo.endRow,
+                    //         //     startColumn: mergeInfo.startColumn,
+                    //         //     endColumn: mergeInfo.endColumn,
+                    //         // },
+                    //         rowIndex,
+                    //         rowIndex,
+                    //         diffRanges
+                    //         // {
+                    //         //     startRow: rowIndex,
+                    //         //     endRow: rowIndex,
+                    //         //     startColumn: columnIndex,
+                    //         //     endColumn: columnIndex,
+                    //         // },
+                    //     )
                     // ) {
                     //     return true;
                     // }
 
-                    if (isMergedMainCell) {
-                        startY = mergeInfo.startY;
-                        endY = mergeInfo.endY;
-                        startX = mergeInfo.startX;
-                        endX = mergeInfo.endX;
-                    }
 
-                    ctx.moveToByPrecision(startX, startY);
-                    ctx.lineToByPrecision(startX, endY);
-                    ctx.lineToByPrecision(endX, endY);
-                    ctx.lineToByPrecision(endX, startY);
+
+                    // ctx.moveToByPrecision(startX, startY);
+                    // ctx.lineToByPrecision(startX, endY);
+                    // ctx.lineToByPrecision(endX, endY);
+                    // ctx.lineToByPrecision(endX, startY);
+                    backgroundPaths.rect(startX, startY, endX - startX, endY - startY)
+
                 });
-                ctx.closePath();
-                ctx.fill();
+                // ctx.closePath();
+                ctx.fill(backgroundPaths);
             });
         ctx.restore();
     }
