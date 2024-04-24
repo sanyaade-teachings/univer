@@ -302,7 +302,7 @@ export class Spreadsheet extends SheetComponent {
     }
 
     renderByViewport(mainCtx: UniverRenderingContext, viewportBoundsInfo: IViewportInfo, spreadsheetSkeleton: SpreadsheetSkeleton) {
-        const { viewBound, cacheBound: cacheBounds, diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, shouldCacheUpdate, cacheCanvas, leftOrigin, topOrigin, bufferEdgeX, bufferEdgeY } = viewportBoundsInfo;
+        const { viewBound, cacheBound: cacheBounds, diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, shouldCacheUpdate, cacheCanvas, leftOrigin, topOrigin, bufferEdgeX, bufferEdgeY } = viewportBoundsInfo as Required<IViewportInfo>;
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
         const bufferEdgeSizeX = bufferEdgeX * scaleX / window.devicePixelRatio;
@@ -340,14 +340,8 @@ export class Spreadsheet extends SheetComponent {
                     // 所以 cacheCtx.setTransform 已经包含了 rowHeaderWidth + scroll 距离
                     const m = mainCtx.getTransform();
                     cacheCtx.setTransform(m.a,m.b, m.c, m.d, m.e, m.f);
-                    // cacheCtx.transform(1, 0, 0, 1, BUFFER_EDGE_SIZE, BUFFER_EDGE_SIZE);
                     viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBound;
                     viewportBoundsInfo.viewPortPosition = viewportBoundsInfo.cacheViewPortPosition;
-                    // cacheCtx.translate(-viewportBoundsInfo.viewBound.left + rowHeaderWidth, -viewportBoundsInfo.viewBound.top + columnHeaderHeight);
-
-                    // 不冻结
-                    // cacheCtx.translate(-viewportBoundsInfo.left + BUFFER_EDGE_SIZE+ rowHeaderWidth, -viewportBoundsInfo.viewBound.top + columnHeaderHeight);
-
 
                     // 处理相对 viewportPosition 的偏移  回到 (0, 0) 单元格位置
                     // cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
@@ -362,21 +356,15 @@ export class Spreadsheet extends SheetComponent {
                 }
                 console.log('dh ', viewPortKey, dh, bottom,  top, columnHeaderHeight);
                 this._applyCacheFreeze(mainCtx, cacheCanvas, bufferEdgeSizeX, bufferEdgeSizeY, dw, dh, left, top, dw, dh);
-                // const pic = mainCtx.canvas.toDataURL();
-                // pic;
-                // //console.timeEnd('!!!viewMain_render!!!_111');
             } else {
                 // diffX diffY 可以是小数
                 // console.log('!!!viewMain_render!!!_222, diffBounds', diffX, diffY, isDirty)
                 //console.time('!!!viewMain_render!!!_222');
-                // if (this.isViewPortDirty(viewPortKey)) {
                 if( isDirty ){
-                    // //console.time('viewMainscroll');
 
                     cacheCtx.save();
                     cacheCtx.setTransform(1, 0, 0, 1, 0, 0);
                     cacheCtx.globalCompositeOperation = 'copy';
-                    // cacheCtx.imageSmoothingEnabled = false;// 关闭抗锯齿  没有斜向图形不需要抗锯齿
                     cacheCtx.drawImage(cacheCanvas.getCanvasEle(), diffX * scaleX, diffY * scaleY);
                     cacheCtx.restore();
 
@@ -454,8 +442,7 @@ export class Spreadsheet extends SheetComponent {
 
             }
             cacheCtx.restore();
-        } else if (['viewMainLeftTop', 'viewMainTop', 'viewMainLeft'].includes(viewPortKey)) {
-            // const cacheCtx = this._cacheCanvasMap.get(viewPortKey)!.getContext();
+        } else {
             const cacheCtx = cacheCanvas.getContext();
             cacheCtx.save();
             const { left, top, right, bottom } = viewPortPosition;
@@ -463,7 +450,6 @@ export class Spreadsheet extends SheetComponent {
             const dh = bottom - top + columnHeaderHeight;
 
             if (diffBounds.length === 0 || (diffX === 0 && diffY === 0) || isForceDirty) {
-                // console.time(`${viewPortKey}_render!!!_111`);
                 if (isDirty || isForceDirty || this.isForceDirty()) {
                     cacheCtx.save();
                     cacheCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -481,26 +467,21 @@ export class Spreadsheet extends SheetComponent {
 
                     cacheCtx.restore();
                 }
-                // console.log('dh ', viewPortKey, dh, bottom,  top, columnHeaderHeight);
                 this._applyCacheFreeze(mainCtx, cacheCanvas, bufferEdgeSizeX, bufferEdgeSizeY, dw, dh, left, top, dw, dh);
-                // console.timeEnd(`${viewPortKey}_render!!!_111`);
             } else {
                 if(isDirty){
                     cacheCtx.save();
                     cacheCtx.setTransform(1, 0, 0, 1, 0, 0);
                     cacheCtx.globalCompositeOperation = 'copy';
-                    // cacheCtx.imageSmoothingEnabled = false;// 关闭抗锯齿  没有斜向图形不需要抗锯齿
                     cacheCtx.drawImage(cacheCanvas.getCanvasEle(), diffX * scaleX, diffY * scaleY);
                     cacheCtx.restore();
 
                     this._refreshIncrementalState = true;
                     cacheCtx.setTransform(mainCtx.getTransform());
-                    // cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
                     cacheCtx.translate(-leftOrigin + bufferEdgeX, -topOrigin + bufferEdgeY);
 
 
 
-                    // console.time(`${viewPortKey}_render!!!_222`);
                     if (shouldCacheUpdate) {
                         for (const diffBound of diffCacheBounds) {
                             let { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
@@ -515,11 +496,6 @@ export class Spreadsheet extends SheetComponent {
 
 
                             cacheCtx.rectByPrecision(x, y, w, h);
-                            // if(viewPortKey  === 'viewMainLeft') {
-                            //     console.log('xywh', x, y, w, h, diffBound)
-                            // }
-                            // cacheCtx.fillStyle = 'rgba(220, 220, 255, 1)';
-                            // cacheCtx.fill();
                             cacheCtx.clip();
                             // @ts-ignore
                             this.draw(cacheCtx, {
@@ -534,7 +510,6 @@ export class Spreadsheet extends SheetComponent {
                             cacheCtx.restore();
                         }
                     }
-                    // console.timeEnd(`${viewPortKey}_render!!!_222`);
 
                     this._refreshIncrementalState = false;
                 }
@@ -545,8 +520,7 @@ export class Spreadsheet extends SheetComponent {
 
     }
 
-    override render(mainCtx: UniverRenderingContext, bounds: IViewportInfo) {
-        window.mainCtx = mainCtx;
+    override render(mainCtx: UniverRenderingContext, viewportInfo: IViewportInfo) {
         if (!this.visible) {
             this.makeDirty(false);
             return this;
@@ -558,7 +532,7 @@ export class Spreadsheet extends SheetComponent {
             return;
         }
 
-        spreadsheetSkeleton.calculateWithoutClearingCache(bounds);
+        spreadsheetSkeleton.calculateWithoutClearingCache(viewportInfo);
 
         const segment = spreadsheetSkeleton.rowColumnSegment;
 
@@ -575,42 +549,25 @@ export class Spreadsheet extends SheetComponent {
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
 
-        this._drawAuxiliary(mainCtx, bounds);
+        this._drawAuxiliary(mainCtx, viewportInfo);
 
-        const { viewPortKey } = bounds;
-        if (bounds && this._allowCache === true) {
-            if(['viewMain', 'viewMainLeftTop', 'viewMainTop', 'viewMainLeft'].includes(viewPortKey)) {
-                this.renderByViewport(mainCtx, bounds, spreadsheetSkeleton);
+        const { viewPortKey } = viewportInfo;
+        // scene --> layer, getObjects --> viewport.render(object) --> spreadsheet
+        // zIndex 0 spreadsheet  this.getObjectsByOrder() ---> [spreadsheet]
+        // zIndex 2 rowHeader & colHeader & freezeBorder this.getObjectsByOrder() ---> [SpreadsheetRowHeader, SpreadsheetColumnHeader, _Rect]
+        // zIndex 3 selection  this.getObjectsByOrder() ---> [group]
+
+        // SpreadsheetRowHeader SpreadsheetColumnHeader 并不在 spreadsheet 中处理
+        if(['viewMain', 'viewMainLeftTop', 'viewMainTop', 'viewMainLeft'].includes(viewPortKey)) {
+            if (viewportInfo && viewportInfo.cacheCanvas) {
+                this.renderByViewport(mainCtx, viewportInfo, spreadsheetSkeleton);
+            } else {
+                this._draw(mainCtx, viewportInfo);
             }
-        } else {
-            this._draw(mainCtx, bounds);
         }
 
         mainCtx.restore();
         return this;
-    }
-
-    /**
-     * (parent as Scene)?.getEngine()?.onTransformChangeObservable.add(
-     * this.onIsAddedToParentObserver.add()
-     * @returns
-     */
-    private _resizeCacheCanvas() {
-        const parentSize = this._getAncestorSize();
-        if (!parentSize || this._cacheCanvas == null) {
-            return;
-        }
-        // let { width, height } = parentSize;
-        // width += BUFFER_EDGE_SIZE * 2;
-        // height += BUFFER_EDGE_SIZE * 2;
-        // this._cacheCanvas.setSize(width, height);
-        // this._cacheCanvasTop.setSize(width, height);
-        // this._cacheCanvasLeft.setSize(width, height);
-        // this._cacheCanvasLeftTop.setSize(width, height);
-        // this.makeDirty(true);
-        // resize 后要整个重新绘制
-        // render 根据 _forceDirty 才清空 cacheCanvas
-        this.makeForceDirty(true);
     }
 
     /**
@@ -662,18 +619,7 @@ export class Spreadsheet extends SheetComponent {
             dh * pixelRatio
         );
         mainCtx.restore();
-        cacheCtx.restore()
-
-        if(!document.body.contains(mainCtx.canvas)) {
-            mainCtx.canvas.style.zIndex = 'BUFFER_EDGE_SIZE';
-            mainCtx.canvas.style.position = 'fixed';
-            mainCtx.canvas.style.background = 'lime';
-            mainCtx.canvas.style.pointerEvents = 'none'; // 禁用事件响应
-            mainCtx.canvas.style.border = '1px solid black'; // 设置边框样式
-            mainCtx.canvas.style.transformOrigin = '30% 0%';
-            mainCtx.canvas.style.transform = 'scale(0.3)';
-            // document.body.appendChild(mainCtx.canvas);
-        }
+        cacheCtx.restore();
     }
 
     protected override _draw(ctx: UniverRenderingContext, bounds?: IViewportInfo) {
@@ -721,48 +667,6 @@ export class Spreadsheet extends SheetComponent {
         this._backgroundExtension = this.getExtensionByKey('DefaultBackgroundExtension') as Background;
         this._borderExtension = this.getExtensionByKey('DefaultBorderExtension') as Border;
         this._fontExtension = this.getExtensionByKey('DefaultFontExtension') as Font;
-    }
-
-    private _addMakeDirtyToScroll() {
-        this._hasScrollViewportOperator(this, (viewport: Viewport) => {
-            // 只有 _getHasScrollViewports() 才会进入这里  也就是 viewMain
-            // console.log('!!!!!_addMakeDirtyToScroll', viewport.viewPortKey);
-            viewport.onScrollBeforeObserver.add((eventData) => {
-                // this.makeDirty(true);
-                // eventData.viewport
-                // console.log('!!_hasScrollViewportOperator', eventData.viewport?.viewPortKey);
-                // this.markViewPortDirty(true, eventData.viewport?.viewPortKey);
-                // this.markViewPortDirty(true);
-
-            });
-        });
-    }
-
-    private _hasScrollViewportOperator(object: BaseObject, fn: (viewPort: Viewport) => void) {
-        let parent: any = object.getParent();
-        while (parent) {
-            if (parent.classType === RENDER_CLASS_TYPE.SCENE) {
-                const viewports = parent.getViewports();
-                const viewPorts = this._getHasScrollViewports(viewports);
-                for (const viewport of viewPorts) {
-                    if (viewport) {
-                        fn(viewport);
-                    }
-                }
-            }
-            parent = parent?.getParent && parent?.getParent();
-        }
-    }
-
-    private _getHasScrollViewports(viewports: Viewport[]) {
-        const newViewports: Viewport[] = [];
-        for (const viewport of viewports) {
-            const scrollBar = viewport.getScrollBar();
-            if (scrollBar) {
-                newViewports.push(viewport);
-            }
-        }
-        return newViewports;
     }
 
     /**

@@ -235,9 +235,6 @@ export class Layer extends Disposable {
     }
 
     private _draw(mainCtx: UniverRenderingContext, isMaxLayer: boolean) {
-        // zIndex 0 spreadsheet  this.getObjectsByOrder() ---> [spreadsheet]
-        // zIndex 2 rowHeader & colHeader & freezeBorder this.getObjectsByOrder() ---> [SpreadsheetRowHeader, SpreadsheetColumnHeader, _Rect]
-        // zIndex 3 selection  this.getObjectsByOrder() ---> [group]
         const viewports = this._scene.getViewports();
         for (const [index, vp] of viewports.entries()) {
             vp.render(mainCtx, this.getObjectsByOrder(), isMaxLayer, index === viewports.length -1)

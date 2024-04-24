@@ -296,8 +296,11 @@ export class Viewport {
             // cacheCanvas.getCanvasEle().style.opacity = '0.9';
             document.body.appendChild(cacheCanvas.getCanvasEle());
         }
-        if((this.viewPortKey === 'viewMainLeft' || this.viewPortKey === 'viewMain') && this._cacheCanvas  ){
-            showCache(this._cacheCanvas);
+        if(['viewMain', 'viewMainLeftTop', 'viewMainTop', 'viewMainLeft'].includes(this.viewPortKey )) {
+            if(this._cacheCanvas) {
+                showCache(this._cacheCanvas);
+
+            }
         }
     }
 
@@ -903,14 +906,7 @@ export class Viewport {
             //     }
             // }
         }
-        // let shouldCacheUpdate = 0b01;
-        // if(Math.abs(cacheDiffX) < BUFFER_EDGE_SIZE_X && Math.abs(cacheDiffY) < BUFFER_EDGE_SIZE_Y ) {
-        //     shouldCacheUpdate = 0;
-        // } else {
-        //     shouldCacheUpdate = 1;
-        //     this._prevCacheBound = this._cacheBound;
-        //     diffCacheBounds = this._diffViewBound(cacheBounds, this._prevCacheBound);
-        // }
+
         return {
             viewBound,
             diffBounds,
@@ -1163,10 +1159,6 @@ export class Viewport {
         const canvasH = height + this.bufferEdgeY * 2 * scaleY;
 
         this._cacheCanvas?.setSize(canvasW, canvasH);
-        // if(this._isRelativeY && parentHeight - this._top !== height) {
-        //     console.log('_resizeCacheCanvasAndScrollBar!!!!!!')
-        // }
-        // console.log('!!!_resizeCacheCanvasAndScrollBar', this._viewPortKey, 'height::', height, 'top', this._top, prevTop, 'bottom', this._bottom, 'parentHeight', parentHeight, 'relativeY', this._isRelativeY, 'origin', this._heightOrigin);
 
         const contentWidth = (this._scene.width - this._paddingEndX) * this._scene.scaleX;
         const contentHeight = (this._scene.height - this._paddingEndY) * this._scene.scaleY;
@@ -1309,10 +1301,8 @@ export class Viewport {
 
         const limited = this.limitedScroll(); // 限制滚动范围
         // 注意只有 viewMain 才能进入到此函数 _scroll 因此其他能滚动的 viewport 要手动 makeDirty
-        // if (x !== undefined || y !== undefined) {
-        //     this.scene.getViewports().filter(vp => ['viewMain', 'viewMainTop', 'viewMainLeft'].includes(vp.viewPortKey)).forEach(vp => vp.makeDirty());
-        //     console.log('scroll dirty', this.viewPortKey, x, y);
-        // }
+        // 此函数存在一次 wheel 后调用多次问题, 导致后面几次 handler diffX 计算为 0
+        // 因此滚动引起的 dirty 在 render 中 makeDirty
         this.onScrollBeforeObserver.notifyObservers({
             viewport: this,
             scrollX: this.scrollX,
@@ -1355,7 +1345,6 @@ export class Viewport {
         return {
             left: Math.max(this.left, value.left - BUFFER_EDGE_SIZE_X),
             top: Math.max(this.top, value.top - BUFFER_EDGE_SIZE_Y),
-            // top: value.top,
             right: value.right + BUFFER_EDGE_SIZE_X,
             bottom: value.bottom + BUFFER_EDGE_SIZE_Y,
         } as IBoundRectNoAngle;
@@ -1548,12 +1537,6 @@ export class Viewport {
         let height = mainCanvas.getHeight();
         this._mainCanvasW = width;
         this._mainCanvasH = height;
-        // width += BUFFER_EDGE_SIZE * 2;
-        // height += BUFFER_EDGE_SIZE * 2;
-        // this._cacheCanvas.setSize(width, height);
-        // this.makeDirty(true);
-        // resize 后要整个重新绘制
-        // render 根据 _forceDirty 才清空 cacheCanvas
         this.makeForceDirty(true);
     }
 }
