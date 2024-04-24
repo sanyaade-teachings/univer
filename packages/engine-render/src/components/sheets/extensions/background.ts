@@ -71,9 +71,8 @@ export class Background extends SheetExtension {
                 const backgroundCache = background[rgb];
 
                 ctx.fillStyle = rgb || getColor([255, 255, 255])!;
-                ctx.beginPath();
 
-                const backgroundPaths = new Path2D();
+                const backgroundPaths = new Path2D(); // 使用 Path 对象代替原有的 ctx.moveTo ctx.lineTo, Path 性能更好
                 backgroundCache.forValue((rowIndex, columnIndex) => {
                     // 当前单元格不在视野范围内, 提前退出
                     // 和 font 不同的是, 不需要考虑合并单元格且单元格横跨 viewport 的情况.
@@ -124,16 +123,9 @@ export class Background extends SheetExtension {
                     //     return true;
                     // }
 
-
-
-                    // ctx.moveToByPrecision(startX, startY);
-                    // ctx.lineToByPrecision(startX, endY);
-                    // ctx.lineToByPrecision(endX, endY);
-                    // ctx.lineToByPrecision(endX, startY);
                     backgroundPaths.rect(startX, startY, endX - startX, endY - startY)
 
                 });
-                // ctx.closePath();
                 ctx.fill(backgroundPaths);
             });
         ctx.restore();

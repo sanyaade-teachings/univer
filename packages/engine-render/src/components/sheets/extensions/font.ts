@@ -17,16 +17,15 @@
 import type { ICellData, IRange, IScale, ObjectMatrix } from '@univerjs/core';
 import { HorizontalAlign, WrapStrategy } from '@univerjs/core';
 
+import { VERTICAL_ROTATE_ANGLE } from '../../../basics/text-rotation';
+import { inCurrentAndAboveViewRanges, inRowViewRanges, inViewRanges, mergeRangeIfIntersects } from '../../../basics/tools';
 import type { UniverRenderingContext } from '../../../context';
 import type { Documents } from '../../docs/document';
 import { SpreadsheetExtensionRegistry } from '../../extension';
 import type { IFontCacheItem } from '../interfaces';
 import type { SheetComponent } from '../sheet-component';
 import { getDocsSkeletonPageSize, type SpreadsheetSkeleton } from '../sheet-skeleton';
-import { VERTICAL_ROTATE_ANGLE } from '../../../basics/text-rotation';
 import { SheetExtension } from './sheet-extension';
-import { inBelowViewRanges, inCurrentAndAboveViewRanges, inLeftAndAboveViewRanges, inRowViewRanges, inViewRanges, mergeRangeIfIntersects } from '../../../basics/tools';
-import { merge } from 'rxjs';
 
 const UNIQUE_KEY = 'DefaultFontExtension';
 
@@ -74,11 +73,8 @@ export class Font extends SheetExtension {
             return;
         }
         ctx.save();
-
         const scale = this._getScale(parentScale);
 
-        let countAll = 0;
-        let countCalc = 0;
         fontList &&
             Object.keys(fontList).forEach((fontFormat: string) => {
                 const fontObjectArray = fontList[fontFormat];
@@ -92,7 +88,6 @@ export class Font extends SheetExtension {
                 // 此外, 不是溢出, 又不在视野内可以提前退出
 
                 fontObjectArray.forValue((rowIndex, columnIndex, docsConfig) => {
-                    countAll++;
                     if( checkOutOfViewBound ) {
                         // 下方单元格 提前退出
                         if(!inCurrentAndAboveViewRanges(viewRanges!, rowIndex, columnIndex)) {
@@ -257,9 +252,6 @@ export class Font extends SheetExtension {
                     } else {
                         ctx.rectByPrecision(startX + 1 / scale, startY + 1 / scale, cellWidth - 2 / scale, cellHeight - 2 / scale);
                         ctx.clip();
-                        // if(rowIndex < 30 && rowIndex > 10) {
-                        //     console.log('background font clear!!', rowIndex, columnIndex, String.fromCharCode('A'.charCodeAt(0) + columnIndex))
-                        // }
                         ctx.clearRectForTexture(
                             startX + 1 / scale,
                             startY + 1 / scale,
@@ -267,13 +259,11 @@ export class Font extends SheetExtension {
                             cellHeight - 2 / scale
                         );
                     }
-                    countCalc++;
                     ctx.translate(startX, startY);
                     this._renderDocuments(ctx, docsConfig, startX, startY, endX, endY, rowIndex, columnIndex, overflowCache);
                     ctx.restore();
                 });
             });
-        // console.log('FontExtension', viewPortKey, 'count', countAll, countCalc)
         ctx.restore();
     }
 

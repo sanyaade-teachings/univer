@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// import '../../global';
 import type { IRange, ISelectionCellWithCoord, Nullable } from '@univerjs/core';
 import { BooleanNumber, ObjectMatrix, sortRules } from '@univerjs/core';
 
@@ -22,14 +21,14 @@ import type { BaseObject } from '../../base-object';
 import { FIX_ONE_PIXEL_BLUR_OFFSET, RENDER_CLASS_TYPE } from '../../basics/const';
 
 // import { clearLineByBorderType } from '../../basics/draw';
-import { getCellPositionByIndex, getColor } from '../../basics/tools';
+import { clampRanges, getCellPositionByIndex, getColor } from '../../basics/tools';
 import type { IBoundRectNoAngle, IViewportInfo, Vector2 } from '../../basics/vector2';
 import { Canvas } from '../../canvas';
 import type { UniverRenderingContext } from '../../context';
 import type { Engine } from '../../engine';
 import type { Scene } from '../../scene';
 import type { SceneViewer } from '../../scene-viewer';
-import { BUFFER_EDGE_SIZE_X, BUFFER_EDGE_SIZE_Y, type Viewport } from '../../viewport';
+import { type Viewport } from '../../viewport';
 import { Documents } from '../docs/document';
 import { SpreadsheetExtensionRegistry } from '../extension';
 import type { Background } from './extensions/background';
@@ -145,15 +144,19 @@ export class Spreadsheet extends SheetComponent {
         }
 
         const parentScale = this.getParentScale();
-
-        const diffRanges = this._refreshIncrementalState && bounds?.diffBounds
+        let diffRanges = this._refreshIncrementalState && bounds?.diffBounds
             ? bounds?.diffBounds?.map((bound) => spreadsheetSkeleton.getRowColumnSegmentByViewBound(bound))
             : undefined;
         const viewRanges = [spreadsheetSkeleton.getRowColumnSegmentByViewBound(bounds?.cacheBound)];
+        // 因为扩大了 viewBound 显示区域, 之前 viewBound left top 最小只能到 46, 20
+        // 现在是 0, 0  ---> diffRanges 可能得到 startRow 为 -1
+        // viewBound
+        // if(diffRanges) {
+        //     diffRanges = diffRanges.map(r => clampRanges(r));
+        // }
 
         const extensions = this.getExtensionsByOrder();
-
-        if((bounds?.viewPortKey === 'viewMain' || bounds?.viewPortKey === 'viewMainLeft')) {
+        if((bounds?.viewPortKey === 'viewMain' )) {
             // console.log(bounds?.viewPortKey, 'diffRange count', diffRanges.length, 'diffY StartRow', diffRanges[0].startRow, 'diffY startColumn', diffRanges[0].startColumn , ':::::height', diffRanges[0].endRow - diffRanges[0].startRow,':::::width', diffRanges[0].endColumn - diffRanges[0].startColumn);
             console.log(bounds?.viewPortKey, ' ranges', viewRanges[0],'diffRanges', diffRanges, 'bounds', bounds?.cacheBound, bounds?.viewBound);
         }
@@ -163,13 +166,11 @@ export class Spreadsheet extends SheetComponent {
         for (const extension of extensions) {
             const timeKey = `${bounds?.viewPortKey}!!ext!!${extension.uKey}`;
             console.time(timeKey);
-            // if(extension.uKey !== 'DefaultFontExtension') {
                 extension.draw(ctx, parentScale, spreadsheetSkeleton, {
                     viewRanges,
                     diffRanges,
                     checkOutOfViewBound: ['viewMain','viewMainLeft', 'viewMainTop'].includes(bounds!.viewPortKey),
                 });
-            // }
             console.timeEnd(timeKey);
         }
         console.timeEnd(timeKey);
@@ -302,21 +303,19 @@ export class Spreadsheet extends SheetComponent {
     }
 
     renderByViewport(mainCtx: UniverRenderingContext, viewportBoundsInfo: IViewportInfo, spreadsheetSkeleton: SpreadsheetSkeleton) {
-        const { viewBound, cacheBound: cacheBounds, diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, shouldCacheUpdate, cacheCanvas, leftOrigin, topOrigin } = viewportBoundsInfo;
+        type IViewportInfoWithCanvas = Required<IViewportInfo>
+        const { viewBound, cacheBound: cacheBounds, diffBounds, diffCacheBounds, diffX, diffY, viewPortPosition, viewPortKey, isDirty, isForceDirty, shouldCacheUpdate, cacheCanvas, leftOrigin, topOrigin, bufferEdgeX, bufferEdgeY } = viewportBoundsInfo as IViewportInfoWithCanvas;
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
-        const bufferEdgeSizeX = BUFFER_EDGE_SIZE_X * scaleX / window.devicePixelRatio;
-        const bufferEdgeSizeY = BUFFER_EDGE_SIZE_Y * scaleY / window.devicePixelRatio;
-        // mainCtx this._scene.getEngine()?.getCanvas().getContext();
+        const bufferEdgeSizeX = bufferEdgeX * scaleX / window.devicePixelRatio;
+        const bufferEdgeSizeY = bufferEdgeY * scaleY / window.devicePixelRatio;
 
 
         if (viewPortKey === 'viewMain') {
             const cacheCtx = cacheCanvas.getContext();
             cacheCtx.save();
 
-            //
             const { left, top, right, bottom } = viewPortPosition;
-
             const dw = right - left + rowHeaderWidth;
             const dh = bottom - top + columnHeaderHeight;
 
@@ -351,7 +350,7 @@ export class Spreadsheet extends SheetComponent {
 
                     // 处理相对 viewportPosition 的偏移  回到 (0, 0) 单元格位置
                     // cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
-                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE_X, -topOrigin + BUFFER_EDGE_SIZE_Y);
+                    cacheCtx.translate(-leftOrigin + bufferEdgeSizeX, -topOrigin + bufferEdgeSizeY);
                     // cacheCtx.translate(bufferEdgeSizeX, 0)
 
                     // extension 绘制时按照内容的左上角计算, 不考虑 rowHeaderWidth
@@ -388,7 +387,7 @@ export class Spreadsheet extends SheetComponent {
 
 
                     // cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
-                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE_X, -topOrigin + BUFFER_EDGE_SIZE_Y);
+                    cacheCtx.translate(-leftOrigin + bufferEdgeSizeX, -topOrigin + bufferEdgeSizeY);
 
 
                     console.time('!!!viewMain_render_222---222');
@@ -403,8 +402,8 @@ export class Spreadsheet extends SheetComponent {
                             // 再次注意!  draw 的时候 ctx.translate 单元格偏移是相对 spreadsheet content
                             // 不考虑 rowHeaderWidth
                             // 但是 diffBounds 是包括 rowHeader 信息
-                            diffLeft -= BUFFER_EDGE_SIZE_X; // 必须扩大范围 不然存在空白贴图
-                            diffTop -= BUFFER_EDGE_SIZE_Y;
+                            diffLeft -= bufferEdgeSizeX; // 必须扩大范围 不然存在空白贴图
+                            diffTop -= bufferEdgeSizeY;
                             const x = diffLeft - (rowHeaderWidth) - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
                             const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
                             const w = diffRight - diffLeft + (rowHeaderWidth) + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
@@ -416,7 +415,7 @@ export class Spreadsheet extends SheetComponent {
                             // cacheCtx.fill();
                             cacheCtx.fillStyle = 'red';
                             cacheCtx.fillText( ''+ x, x, 340)//-tr.f + 100)
-                            cacheCtx.clip();
+                            // cacheCtx.clip();
 
 
                             //@ts-ignore
@@ -473,7 +472,7 @@ export class Spreadsheet extends SheetComponent {
                     cacheCtx.save();
                     // cacheCtx.setTransform(sceneTrans.convert2DOMMatrix2D());
                     cacheCtx.setTransform(mainCtx.getTransform());
-                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE_X, -topOrigin + BUFFER_EDGE_SIZE_Y);
+                    cacheCtx.translate(-leftOrigin + bufferEdgeSizeX, -topOrigin + bufferEdgeSizeY);
 
 
                     viewportBoundsInfo.viewBound = viewportBoundsInfo.cacheBound;
@@ -496,7 +495,7 @@ export class Spreadsheet extends SheetComponent {
                     this._refreshIncrementalState = true;
                     cacheCtx.setTransform(mainCtx.getTransform());
                     // cacheCtx.translate(-left + BUFFER_EDGE_SIZE, -top);
-                    cacheCtx.translate(-leftOrigin + BUFFER_EDGE_SIZE_X, -topOrigin + BUFFER_EDGE_SIZE_Y);
+                    cacheCtx.translate(-leftOrigin + bufferEdgeSizeX, -topOrigin + bufferEdgeSizeY);
 
 
 
@@ -506,8 +505,8 @@ export class Spreadsheet extends SheetComponent {
                             let { left: diffLeft, right: diffRight, bottom: diffBottom, top: diffTop } = diffBound;
                             cacheCtx.save();
                             cacheCtx.beginPath();
-                            diffLeft -= BUFFER_EDGE_SIZE_X; // 必须扩大范围 不然存在空白贴图
-                            diffTop -= BUFFER_EDGE_SIZE_Y;
+                            diffLeft -= bufferEdgeSizeX; // 必须扩大范围 不然存在空白贴图
+                            diffTop -= bufferEdgeSizeY;
                             const x = diffLeft - (rowHeaderWidth) - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
                             const y = diffTop - columnHeaderHeight - FIX_ONE_PIXEL_BLUR_OFFSET * 2;
                             const w = diffRight - diffLeft + (rowHeaderWidth) + FIX_ONE_PIXEL_BLUR_OFFSET * 2;
@@ -545,7 +544,7 @@ export class Spreadsheet extends SheetComponent {
 
     }
 
-    override render(mainCtx: UniverRenderingContext, bounds: IViewportInfo) {
+    override render(mainCtx: UniverRenderingContext, viewportInfo: IViewportInfo) {
         window.mainCtx = mainCtx;
         if (!this.visible) {
             this.makeDirty(false);
@@ -558,7 +557,7 @@ export class Spreadsheet extends SheetComponent {
             return;
         }
 
-        spreadsheetSkeleton.calculateWithoutClearingCache(bounds);
+        spreadsheetSkeleton.calculateWithoutClearingCache(viewportInfo);
 
         const segment = spreadsheetSkeleton.rowColumnSegment;
 
@@ -575,16 +574,25 @@ export class Spreadsheet extends SheetComponent {
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         mainCtx.translateWithPrecision(rowHeaderWidth, columnHeaderHeight);
 
-        this._drawAuxiliary(mainCtx, bounds);
+        this._drawAuxiliary(mainCtx, viewportInfo);
 
-        const { viewPortKey } = bounds;
-        if (bounds && this._allowCache === true) {
-            if(['viewMain', 'viewMainLeftTop', 'viewMainTop', 'viewMainLeft'].includes(viewPortKey)) {
-                this.renderByViewport(mainCtx, bounds, spreadsheetSkeleton);
+        const { viewPortKey, cacheCanvas } = viewportInfo;
+
+        // scene --> layer --> viewport
+        // 下面是 sheets 中常见的三个 layer
+        // 可见, spreadsheet 只渲染内容部分, 行头列头的渲染在 zIndex = 2 的 layer 中
+        // zIndex 0 spreadsheet  this.getObjectsByOrder() ---> [spreadsheet]
+        // zIndex 2 rowHeader & colHeader & freezeBorder this.getObjectsByOrder() ---> [SpreadsheetRowHeader, SpreadsheetColumnHeader, _Rect]
+        // zIndex 3 selection  this.getObjectsByOrder() ---> [group]
+
+        if(['viewMain', 'viewMainLeftTop', 'viewMainTop', 'viewMainLeft'].includes(viewPortKey)) {
+            if (viewportInfo && viewportInfo.cacheCanvas) {
+                this.renderByViewport(mainCtx, viewportInfo, spreadsheetSkeleton);
+            } else {
+                this._draw(mainCtx, viewportInfo);
             }
-        } else {
-            this._draw(mainCtx, bounds);
         }
+
 
         mainCtx.restore();
         return this;
@@ -721,21 +729,6 @@ export class Spreadsheet extends SheetComponent {
         this._backgroundExtension = this.getExtensionByKey('DefaultBackgroundExtension') as Background;
         this._borderExtension = this.getExtensionByKey('DefaultBorderExtension') as Border;
         this._fontExtension = this.getExtensionByKey('DefaultFontExtension') as Font;
-    }
-
-    private _addMakeDirtyToScroll() {
-        this._hasScrollViewportOperator(this, (viewport: Viewport) => {
-            // 只有 _getHasScrollViewports() 才会进入这里  也就是 viewMain
-            // console.log('!!!!!_addMakeDirtyToScroll', viewport.viewPortKey);
-            viewport.onScrollBeforeObserver.add((eventData) => {
-                // this.makeDirty(true);
-                // eventData.viewport
-                // console.log('!!_hasScrollViewportOperator', eventData.viewport?.viewPortKey);
-                // this.markViewPortDirty(true, eventData.viewport?.viewPortKey);
-                // this.markViewPortDirty(true);
-
-            });
-        });
     }
 
     private _hasScrollViewportOperator(object: BaseObject, fn: (viewPort: Viewport) => void) {

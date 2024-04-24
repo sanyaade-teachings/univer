@@ -877,6 +877,7 @@ export interface IViewportInfo {
     isDirty?: boolean;
     isForceDirty?: boolean;
 
+    allowCache?: boolean;
     cacheBound: IBoundRectNoAngle;
     diffCacheBounds: IBoundRectNoAngle[];
     cacheViewPortPosition: IBoundRectNoAngle;
@@ -884,10 +885,13 @@ export interface IViewportInfo {
     // vp?: Viewport;
     shouldCacheUpdate: number;
     sceneTrans: Transform;
-    cacheCanvas: Canvas;
+    cacheCanvas?: Canvas;
 
     leftOrigin: number;
     topOrigin: number;
+
+    bufferEdgeX: number;
+    bufferEdgeY: number;
 }
 
 export interface IViewportBounds {

@@ -814,3 +814,13 @@ export function mergeRangeIfIntersects(mainRange: IRange, ranges:IRange[]) {
     }
     return mainRange;
 }
+
+
+export function clampRanges(range: IRange) {
+    return {
+        startRow: Math.max(0, range.startRow),
+        startColumn: Math.max(0, range.startColumn),
+        endRow: Math.max(0, range.endRow),
+        endColumn: Math.max(0, range.endColumn),
+    }
+}

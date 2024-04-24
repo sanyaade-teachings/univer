@@ -215,6 +215,9 @@ export class SheetCanvasView extends RxDisposable {
             isWheelPreventDefaultX: true,
             isRelativeX: true,
             isRelativeY: true,
+            allowCache: true,
+            bufferEdgeX: 100,
+            bufferEdgeY: 50,
         });
 
         new Viewport(VIEWPORT_KEY.VIEW_ROW_TOP, scene, {
@@ -266,6 +269,9 @@ export class SheetCanvasView extends RxDisposable {
             active: false,
             isRelativeX: false,
             isRelativeY: false,
+            allowCache: true,
+            bufferEdgeX: 0,
+            bufferEdgeY: 0,
         });
 
         const viewMainLeft = new Viewport(VIEWPORT_KEY.VIEW_MAIN_LEFT, scene, {
@@ -273,6 +279,9 @@ export class SheetCanvasView extends RxDisposable {
             active: false,
             isRelativeX: false,
             isRelativeY: true,
+            allowCache: true,
+            bufferEdgeX: 0,
+            bufferEdgeY: 50,
         });
 
         const viewMainTop = new Viewport(VIEWPORT_KEY.VIEW_MAIN_TOP, scene, {
@@ -280,6 +289,9 @@ export class SheetCanvasView extends RxDisposable {
             active: false,
             isRelativeX: true,
             isRelativeY: false,
+            allowCache: true,
+            bufferEdgeX: 100,
+            bufferEdgeY: 0,
         });
 
         // mouse scroll

@@ -51,6 +51,10 @@ interface IViewProps extends IViewPosition {
 
     isRelativeX?: boolean;
     isRelativeY?: boolean;
+
+    allowCache?: boolean;
+    bufferEdgeX?: number;
+    bufferEdgeY?: number;
 }
 
 export interface IScrollObserverParam {
@@ -80,6 +84,31 @@ const MOUSE_WHEEL_SPEED_SMOOTHING_FACTOR = 3;
 const BUFFER_EDGE_SIZE_X = 100;
 const BUFFER_EDGE_SIZE_Y = 50;
 export { BUFFER_EDGE_SIZE_X, BUFFER_EDGE_SIZE_Y };
+const bufferMap = {
+    'viewMain': {
+        BUFFER_EDGE_SIZE_X: 100,
+        BUFFER_EDGE_SIZE_Y: 50,
+    },
+    'viewMainTop': {
+        BUFFER_EDGE_SIZE_X: 100,
+        BUFFER_EDGE_SIZE_Y: 0,
+    },
+    'viewMainLeft': {
+        BUFFER_EDGE_SIZE_X: 0,
+        BUFFER_EDGE_SIZE_Y: 50,
+    },
+    'viewMainLeftTop': {
+        BUFFER_EDGE_SIZE_X: 0,
+        BUFFER_EDGE_SIZE_Y: 0,
+    }
+}
+const calcBufferSize = (viewPortKey: keyof typeof bufferMap) => {
+    return bufferMap[viewPortKey] || {
+        BUFFER_EDGE_SIZE_X: 0,
+        BUFFER_EDGE_SIZE_Y: 0,
+    };
+}
+export { calcBufferSize };
 export class Viewport {
     /**
      * scrollX means scroll x value for scrollbar in viewMain
@@ -190,6 +219,12 @@ export class Viewport {
     private _mainCanvasW: number;
     private _mainCanvasH: number;
 
+    /**
+     * Buffer Area size, default is zero
+     */
+    bufferEdgeX: number = 0;
+    bufferEdgeY: number = 0;
+
     constructor(viewPortKey: string, scene: ThinScene, props?: IViewProps) {
         this._viewPortKey = viewPortKey;
 
@@ -220,6 +255,7 @@ export class Viewport {
         }
 
         this._setWithAndHeight(props);
+        this.initCacheCanvas(props);
 
         this._isWheelPreventDefaultX = props?.isWheelPreventDefaultX || false;
         this._isWheelPreventDefaultY = props?.isWheelPreventDefaultY || false;
@@ -232,26 +268,17 @@ export class Viewport {
         });
         this._spreadSheetResizeHandler();
 
-        this.initCacheCanvas();
         this._testDisplayCache();
     }
 
-    initCacheCanvas() {
-        if(['viewMain', 'viewMainLeft', 'viewMainLeftTop', 'viewMainTop'].includes(this.viewPortKey)) {
+    initCacheCanvas(props?: IViewProps) {
+        if(props?.allowCache) {
             this._cacheCanvas = new UniverCanvas();
-            // const canvas = this._cacheCanvas.getCanvasEle();
-            // const context = canvas.getContext('2d')!;
-            // const borderWidth = 100;
-            // const borderColor = 'lightblue';
-
-            // const canvasWidth = canvas.width;
-            // const canvasHeight = canvas.height;
-
-            // context.strokeStyle = borderColor;
-            // context.lineWidth = borderWidth;
-            // context.strokeRect(0, 0, canvasWidth, canvasHeight);
         }
+        this.bufferEdgeX = props?.bufferEdgeX || 0;
+        this.bufferEdgeY = props?.bufferEdgeY || 0;
     }
+
 
     _testDisplayCache() {
         const globalThis = window as any;
@@ -269,8 +296,8 @@ export class Viewport {
             // cacheCanvas.getCanvasEle().style.opacity = '0.9';
             document.body.appendChild(cacheCanvas.getCanvasEle());
         }
-        if(this.viewPortKey === 'viewMainLeft' || this.viewPortKey === 'viewMain') {
-            showCache(this._cacheCanvas!);
+        if((this.viewPortKey === 'viewMainLeft' || this.viewPortKey === 'viewMain') && this._cacheCanvas  ){
+            showCache(this._cacheCanvas);
         }
     }
 
@@ -653,7 +680,6 @@ export class Viewport {
             return;
         }
         const mainCtx = parentCtx || (this._scene.getEngine()?.getCanvas().getContext() as UniverRenderingContext);
-        const cacheCtx = this._cacheCanvas?.getContext();
 
         const sceneTrans = this._scene.transform.clone();
         sceneTrans.multiply(Transform.create([1, 0, 0, 1, -this.actualScrollX || 0, -this.actualScrollY || 0]));
@@ -745,6 +771,7 @@ export class Viewport {
                 viewPortKey: this.viewPortKey,
                 isDirty: this.isDirty,
                 isForceDirty: this.isForceDirty,
+                allowCache: false,
                 cacheBound: {
                     left: -1,
                     top: -1,
@@ -759,7 +786,11 @@ export class Viewport {
                     right: 0,
                 },
                 shouldCacheUpdate: 0,
-                sceneTrans:  Transform.create([1, 0, 0, 1, 0, 0])
+                sceneTrans:  Transform.create([1, 0, 0, 1, 0, 0]),
+                leftOrigin: 0,
+                topOrigin: 0,
+                bufferEdgeX: this.bufferEdgeX,
+                bufferEdgeY: this.bufferEdgeY,
             } satisfies IViewportInfo;
         }
 
@@ -860,7 +891,7 @@ export class Viewport {
 
         let shouldCacheUpdate = this._shouldCacheUpdate(viewBound, this._preCacheBound, diffX, diffY);
         if(shouldCacheUpdate) {
-            diffCacheBounds = this._diffViewBound(cacheBound, this._preCacheBound);
+            diffCacheBounds = this._diffCacheBound(this._preCacheBound, cacheBound);
         }
         if(this.viewPortKey === 'viewMain') {
             console.log('shouldCacheUpdate', shouldCacheUpdate)
@@ -897,7 +928,8 @@ export class Viewport {
             cacheCanvas: this._cacheCanvas!,
             leftOrigin: this._leftOrigin,
             topOrigin: this._topOrigin,
-
+            bufferEdgeX: this.bufferEdgeX,
+            bufferEdgeY: this.bufferEdgeY,
         }  satisfies IViewportInfo;
     }
 
@@ -1127,8 +1159,8 @@ export class Viewport {
 
         const scaleX = this.scene.scaleX;
         const scaleY = this.scene.scaleY;
-        const canvasW = width + BUFFER_EDGE_SIZE_X * 2 * scaleX;
-        const canvasH = height + BUFFER_EDGE_SIZE_Y * 2 * scaleY;
+        const canvasW = width + this.bufferEdgeX * 2 * scaleX;
+        const canvasH = height + this.bufferEdgeY * 2 * scaleY;
 
         this._cacheCanvas?.setSize(canvasW, canvasH);
         // if(this._isRelativeY && parentHeight - this._top !== height) {
@@ -1320,30 +1352,13 @@ export class Viewport {
     }
 
     expandBounds(value: {top:number, left: number, bottom: number, right: number}) {
-        // if(this.viewPortKey === 'viewMain') {
-            return {
-                left: Math.max(0, value.left - BUFFER_EDGE_SIZE_X),
-                top: Math.max(0, value.top - BUFFER_EDGE_SIZE_Y),
-                // top: value.top,
-                right: value.right + BUFFER_EDGE_SIZE_X,
-                bottom: value.bottom + BUFFER_EDGE_SIZE_Y,
-            } as IBoundRectNoAngle;
-        // } else {
-        //     return {
-        //         top: value.top,
-        //         left: value.left,
-        //         right: value.right,
-        //         bottom: value.bottom,
-        //     }
-        // }
-    }
-
-    initCacheBounds(viewBound:IBoundRectNoAngle) {
-        // if(!this._cacheBound) {
-            this._cacheBound = this.expandBounds(viewBound);
-            return this._cacheBound!;
-        // }
-        return this._cacheBound;
+        return {
+            left: Math.max(0, value.left - BUFFER_EDGE_SIZE_X),
+            top: Math.max(0, value.top - BUFFER_EDGE_SIZE_Y),
+            // top: value.top,
+            right: value.right + BUFFER_EDGE_SIZE_X,
+            bottom: value.bottom + BUFFER_EDGE_SIZE_Y,
+        } as IBoundRectNoAngle;
     }
 
     updateCacheBounds(viewBound?:IBoundRectNoAngle) {
@@ -1416,56 +1431,56 @@ export class Viewport {
                 bottom: endRow,
             };
         });
+    }
 
-        // function calculateAdditionalCoverage(A, B) {
-        //     let additionalAreas = [];
+    private _diffCacheBound(prevBound: Nullable<IBoundRectNoAngle>, currBound: IBoundRectNoAngle) {
+        if (!prevBound) {
+            return [currBound];
+        }
+        let additionalAreas: IBoundRectNoAngle[] = [];
 
-        //     // 如果B在A的左侧有多余部分
-        //     if (B.left < A.left) {
-        //       additionalAreas.push({
-        //         top: B.top,
-        //         bottom: B.bottom,
-        //         left: B.left,
-        //         right: A.left
-        //       });
-        //     }
+        // 如果B在A的左侧有多余部分
+        if (currBound.left < prevBound.left) {
+            additionalAreas.push({
+                top: currBound.top,
+                bottom: currBound.bottom,
+                left: currBound.left,
+                right: prevBound.left
+            });
+        }
 
-        //     // 如果B在A的右侧有多余部分
-        //     if (B.right > A.right) {
-        //       additionalAreas.push({
-        //         top: B.top,
-        //         bottom: B.bottom,
-        //         left: A.right,
-        //         right: B.right
-        //       });
-        //     }
+        // 如果B在A的右侧有多余部分
+        if (currBound.right > prevBound.right) {
+            additionalAreas.push({
+                top: currBound.top,
+                bottom: currBound.bottom,
+                left: prevBound.right,
+                right: currBound.right
+            });
+        }
 
-        //     // 如果B在A的上方有多余部分
-        //     if (B.top < A.top) {
-        //       additionalAreas.push({
-        //         top: B.top,
-        //         bottom: A.top,
-        //         left: Math.max(A.left, B.left),
-        //         right: Math.min(A.right, B.right)
-        //       });
-        //     }
+        // 如果B在A的上方有多余部分
+        if (currBound.top < prevBound.top) {
+            additionalAreas.push({
+                top: currBound.top,
+                bottom: prevBound.top,
+                left: Math.max(prevBound.left, currBound.left),
+                right: Math.min(prevBound.right, currBound.right)
+            });
+        }
 
-        //     // 如果B在A的下方有多余部分
-        //     if (B.bottom > A.bottom) {
-        //       additionalAreas.push({
-        //         top: A.bottom,
-        //         bottom: B.bottom,
-        //         left: Math.max(A.left, B.left),
-        //         right: Math.min(A.right, B.right)
-        //       });
-        //     }
+        // 如果B在A的下方有多余部分
+        if (currBound.bottom > prevBound.bottom) {
+            additionalAreas.push({
+                top: prevBound.bottom,
+                bottom: currBound.bottom,
+                left: Math.max(prevBound.left, currBound.left),
+                right: Math.min(prevBound.right, currBound.right)
+            });
+        }
 
-        //     return additionalAreas;
-        //   }
+        return additionalAreas;
 
-        //   // 示例用法
-        //   let additionalAreas = calculateAdditionalCoverage(mainBound, subBound);
-        //   return additionalAreas;
     }
 
     private _drawScrollbar(ctx: UniverRenderingContext) {
