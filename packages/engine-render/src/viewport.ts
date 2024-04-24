@@ -1353,8 +1353,8 @@ export class Viewport {
 
     expandBounds(value: {top:number, left: number, bottom: number, right: number}) {
         return {
-            left: Math.max(0, value.left - BUFFER_EDGE_SIZE_X),
-            top: Math.max(0, value.top - BUFFER_EDGE_SIZE_Y),
+            left: Math.max(this.left, value.left - BUFFER_EDGE_SIZE_X),
+            top: Math.max(this.top, value.top - BUFFER_EDGE_SIZE_Y),
             // top: value.top,
             right: value.right + BUFFER_EDGE_SIZE_X,
             bottom: value.bottom + BUFFER_EDGE_SIZE_Y,
