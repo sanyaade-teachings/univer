@@ -31,6 +31,8 @@ import { NORMAL_SELECTION_PLUGIN_NAME, SelectionManagerService } from '../../../
 import { SetRangeValuesMutation } from '../../mutations/set-range-values.mutation';
 import type { ISetRangeValuesCommandParams } from '../set-range-values.command';
 import { SetRangeValuesCommand } from '../set-range-values.command';
+import { WorkbookPermissionService } from '../../../services/permission/workbook-permission.service';
+import { WorksheetPermissionService } from '../../../services/permission/worksheet-permission.service';
 import { createCommandTestBed } from './create-command-test-bed';
 
 describe('Test set range values commands', () => {
@@ -48,7 +50,7 @@ describe('Test set range values commands', () => {
     let getStyle: () => any;
 
     beforeEach(() => {
-        const testBed = createCommandTestBed();
+        const testBed = createCommandTestBed(undefined, [[WorkbookPermissionService], [WorksheetPermissionService]]);
         univer = testBed.univer;
         get = testBed.get;
 

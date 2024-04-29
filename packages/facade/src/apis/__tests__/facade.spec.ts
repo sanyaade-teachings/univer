@@ -16,7 +16,7 @@
 
 import type { ICellData, IStyleData, Nullable } from '@univerjs/core';
 import { ICommandService, IUniverInstanceService } from '@univerjs/core';
-import { SetRangeValuesCommand, SetRangeValuesMutation, SetStyleCommand } from '@univerjs/sheets';
+import { SetRangeValuesCommand, SetRangeValuesMutation, SetStyleCommand, WorkbookPermissionService, WorksheetPermissionService } from '@univerjs/sheets';
 import type { Injector } from '@wendellhu/redi';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -47,7 +47,7 @@ describe('Test FUniver', () => {
     let getSheetRenderComponent: (unitId: string, viewKey: SHEET_VIEW_KEY) => Nullable<RenderComponentType>;
 
     beforeEach(() => {
-        const testBed = createTestBed();
+        const testBed = createTestBed(undefined, [[WorkbookPermissionService], [WorksheetPermissionService]]);
         get = testBed.get;
         univerAPI = testBed.univerAPI;
 

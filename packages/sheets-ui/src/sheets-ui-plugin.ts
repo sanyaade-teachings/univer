@@ -71,6 +71,7 @@ import { CellCustomRenderController } from './controllers/cell-custom-render.con
 import { SheetCanvasPopManagerService } from './services/canvas-pop-manager.service';
 import { ForceStringRenderController } from './controllers/force-string-render.controller';
 import { ForceStringAlertController } from './controllers/force-string-alert.controller';
+import { SheetPermissionController } from './controllers/sheet-permission.controller';
 
 export class UniverSheetsUIPlugin extends Plugin {
     static override pluginName = 'SHEET_UI_PLUGIN_NAME';
@@ -133,6 +134,7 @@ export class UniverSheetsUIPlugin extends Plugin {
                 [MoveRangeController],
                 [ScrollController],
                 [SelectionController],
+                [SheetPermissionController],
                 [SheetClipboardController],
                 [SheetContextMenuController],
                 [SheetRenderController],

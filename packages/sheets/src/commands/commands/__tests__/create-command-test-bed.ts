@@ -34,7 +34,6 @@ import enUS from '../../../locale/en-US';
 import { BorderStyleManagerService } from '../../../services/border-style-manager.service';
 import { SelectionManagerService } from '../../../services/selection-manager.service';
 import { SheetInterceptorService } from '../../../services/sheet-interceptor/sheet-interceptor.service';
-import { SheetPermissionService } from '../../../services/permission';
 
 const TEST_WORKBOOK_DATA_DEMO: IWorkbookData = {
     id: 'test',
@@ -98,7 +97,6 @@ export function createCommandTestBed(workbookData?: IWorkbookData, dependencies?
             injector.add([SelectionManagerService]);
             injector.add([BorderStyleManagerService]);
             injector.add([SheetInterceptorService]);
-            injector.add([SheetPermissionService]);
 
             dependencies?.forEach((d) => injector.add(d));
         }
