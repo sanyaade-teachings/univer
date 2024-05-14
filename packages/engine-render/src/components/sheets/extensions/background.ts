@@ -16,7 +16,7 @@
 
 import type { IRange, IScale } from '@univerjs/core';
 
-import { getColor, inViewRanges, mergeRangeIfIntersects } from '../../../basics/tools';
+import { fixLineWidthByScale, getColor, inViewRanges, mergeRangeIfIntersects } from '../../../basics/tools';
 import type { UniverRenderingContext } from '../../../context';
 import { SpreadsheetExtensionRegistry } from '../../extension';
 import type { SpreadsheetSkeleton } from '../sheet-skeleton';
@@ -29,8 +29,8 @@ const UNIQUE_KEY = 'DefaultBackgroundExtension';
  * in prev version background ext is higer than font ext. now turing back lower than font ext.
  * font ext zindex is 30.
  */
-const DOC_EXTENSION_Z_INDEX = 20;
-const PRINTING_Z_INDEX = 20;
+const DOC_EXTENSION_Z_INDEX = 21;
+const PRINTING_Z_INDEX = 21;
 
 export class Background extends SheetExtension {
     override uKey = UNIQUE_KEY;
@@ -69,6 +69,7 @@ export class Background extends SheetExtension {
         }
         ctx.save();
         // ctx.setGlobalCompositeOperation('destination-over');
+        const { scaleX, scaleY } = ctx.getScale();
         background &&
             Object.keys(background).forEach((rgb: string) => {
                 const backgroundCache = background[rgb];
@@ -107,8 +108,12 @@ export class Background extends SheetExtension {
                         startX = mergeInfo.startX;
                         endX = mergeInfo.endX;
                     }
-
-                    backgroundPaths.rect(startX, startY, endX - startX, endY - startY);
+                    // precise is a workaround for windows, macOS does not have this issue.
+                    const startXPrecise = fixLineWidthByScale(startX, scaleX);
+                    const startYPrecise = fixLineWidthByScale(startY, scaleY);
+                    const endXPrecise = fixLineWidthByScale(endX, scaleX);
+                    const endYPrecise = fixLineWidthByScale(endY, scaleY);
+                    backgroundPaths.rect(startXPrecise, startYPrecise, endXPrecise - startXPrecise, endYPrecise - startYPrecise);
                 });
                 ctx.fill(backgroundPaths);
             });
