@@ -29,6 +29,8 @@ import type { FUniver } from '../facade';
 import { createFacadeTestBed } from './create-test-bed';
 import { COLUMN_UNIQUE_KEY, ColumnHeaderCustomExtension, MAIN_UNIQUE_KEY, MainCustomExtension, ROW_UNIQUE_KEY, RowHeaderCustomExtension } from './utils/sheet-extension-util';
 
+vi.stubGlobal('jest', vi);
+
 describe('Test FUniver', () => {
     let get: Injector['get'];
     let commandService: ICommandService;
@@ -47,10 +49,6 @@ describe('Test FUniver', () => {
         endColumn: number
     ) => Nullable<IStyleData>;
     let getSheetRenderComponent: (unitId: string, viewKey: SHEET_VIEW_KEY) => Nullable<RenderComponentType>;
-
-    beforeEach(() => {
-        vi.stubGlobal('jest', vi);
-    });
 
     beforeEach(() => {
         const testBed = createFacadeTestBed();
