@@ -18,11 +18,13 @@ import type { ICellData, IStyleData, Nullable } from '@univerjs/core';
 import { HorizontalAlign, ICommandService, IUniverInstanceService, VerticalAlign, WrapStrategy } from '@univerjs/core';
 import { SetHorizontalTextAlignCommand, SetRangeValuesCommand, SetRangeValuesMutation, SetStyleCommand, SetTextWrapCommand, SetVerticalTextAlignCommand } from '@univerjs/sheets';
 import type { Injector } from '@wendellhu/redi';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FormulaDataModel } from '@univerjs/engine-formula';
 import type { FUniver } from '../../facade';
 import { createFacadeTestBed } from '../../__tests__/create-test-bed';
+
+vi.stubGlobal('jest', vi);
 
 describe('Test FRange', () => {
     let get: Injector['get'];
@@ -42,6 +44,9 @@ describe('Test FRange', () => {
     ) => Nullable<IStyleData>;
 
     beforeEach(() => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        vi.advanceTimersByTime(250);
+
         const testBed = createFacadeTestBed();
         get = testBed.get;
         univerAPI = testBed.univerAPI;
@@ -83,7 +88,7 @@ describe('Test FRange', () => {
     it('Range setValue', () => {
         const activeSheet = univerAPI.getActiveWorkbook()?.getActiveSheet();
 
-        // A1 sets the number
+        // // A1 sets the number
         const range1 = activeSheet?.getRange(0, 0, 1, 1);
         range1?.setValue(1);
 
