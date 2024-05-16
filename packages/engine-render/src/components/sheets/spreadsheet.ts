@@ -135,15 +135,36 @@ export class Spreadsheet extends SheetComponent {
             : undefined;
         const viewRanges = [spreadsheetSkeleton.getRowColumnSegmentByViewBound(viewportInfo?.cacheBound)];
         const extensions = this.getExtensionsByOrder();
+
+        const timeKey0 = `extensions${viewportInfo.viewPortKey}`;
+        window.currFrameEnd = performance.now() + 10;
+        // [Background, ConditionalFormattingIcon, DataBar, Font2, Border, Custom, Marker]
+        // console.group(timeKey0);
         for (const extension of extensions) {
-            // const timeKey = `extension ${viewportInfo.viewPortKey}:${extension.constructor.name}`;
+            const timeKey = `extension ${viewportInfo.viewPortKey}:${extension.constructor.name}`;
             // console.time(timeKey);
+            const lag = false;
+            if (window.expectNextFrameEnd !== undefined) {
+                if (performance.now() > window.expectNextFrameEnd) {
+                    // console.log('time over next lag', timeKey, performance.now() - window.expectNextFrameEnd);
+                    // lag = true;
+                }
+            }
             extension.draw(ctx, parentScale, spreadsheetSkeleton, diffRanges, {
                 viewRanges,
-                checkOutOfViewBound: true,
+                checkOutOfViewBound: !lag,
             });
             // console.timeEnd(timeKey);
+            if (window.expectNextFrameEnd !== undefined) {
+                if (performance.now() > window.expectNextFrameEnd) {
+                    if (extension.zIndex > 0) {
+                        // console.log('time over next drop', timeKey, performance.now() - window.expectNextFrameEnd);
+                        // break;
+                    }
+                }
+            }
         }
+        // console.groupEnd(timeKey0);
     }
 
     override isHit(coord: Vector2) {

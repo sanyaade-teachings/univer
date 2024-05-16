@@ -92,18 +92,32 @@ export class Font extends SheetExtension {
                 // 而 viewMainLeftTop 不受 viewBounds 之外的影响, 因此视野外的单元格提前退出
                 // 此外, 不是溢出, 又不在视野内可以提前退出 (视野需要考虑合并单元格带来的影响)
 
+
+                let lag = false;
                 // eslint-disable-next-line complexity
                 fontObjectArray.forValue((rowIndex, columnIndex, docsConfig) => {
-                    if (checkOutOfViewBound) {
-                        // 下方单元格 提前退出
-                        if (!inCurrentAndAboveViewRanges(viewRanges!, rowIndex)) {
-                            return true;
+                    if (lag === false && window.expectNextFrameEnd !== undefined) {
+                        if (performance.now() > window.expectNextFrameEnd) {
+                            lag = true;
                         }
-                    } else {
+                    }
+                    if (!checkOutOfViewBound) {
                         if (!inViewRanges(viewRanges!, rowIndex, columnIndex)) {
                             return true;
                         }
                     }
+                    // if (lag) {
+                    //     if (diffRanges && diffRanges.length) {
+                    //         // console.log('font time over curr', performance.now() - window.currFrameEnd);
+                    //         if (!inViewRanges(diffRanges, rowIndex, columnIndex)) {
+                    //             return true;
+                    //         }
+                    //     } else {
+                    //         if (!inViewRanges(viewRanges, rowIndex, columnIndex)) {
+                    //             return true;
+                    //         }
+                    //     }
+                    // }
                     const cellInfo = this.getCellIndex(
                         rowIndex,
                         columnIndex,
@@ -163,6 +177,15 @@ export class Font extends SheetExtension {
                     // 单元格是否溢出 没有设置溢出 overflowRectangle 为 undefined
                     const overflowRectangle = overflowCache.getValue(rowIndex, columnIndex);
                     const { horizontalAlign, vertexAngle = 0, centerAngle = 0 } = docsConfig;
+
+                    // if (overflowRectangle) {
+                    //     if (window.expectNextFrameEnd !== undefined) {
+                    //         if (performance.now() > window.expectNextFrameEnd) {
+                    //             console.log('font overflow time over next', performance.now() - window.expectNextFrameEnd);
+                    //             return true;
+                    //         }
+                    //     }
+                    // }
 
                     // 既不是溢出, 又不在当前 range 内, 那么提前退出(已考虑合并单元格带来的 range 扩展)
                     if (!overflowRectangle && !inViewRanges(combineWithMergeRanges, rowIndex, columnIndex)) {

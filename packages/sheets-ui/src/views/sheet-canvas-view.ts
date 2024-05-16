@@ -71,6 +71,7 @@ export class SheetCanvasView extends RxDisposable implements IRenderController {
         const should = workbook.getShouldRenderLoopImmediately();
         if (should) {
             engine.runRenderLoop(() => {
+                window.expectNextFrameEnd = performance.now() + 16;
                 scene.render();
                 this._fps$.next(Math.round(engine.getFps()).toString());
             });

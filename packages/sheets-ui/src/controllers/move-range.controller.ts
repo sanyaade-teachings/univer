@@ -99,6 +99,7 @@ export class MoveRangeController extends Disposable {
                                         fromRange,
                                         toRange,
                                     };
+                                    console.log('move-range.controller.tsmove-range.controller.tsmove-range.controller.tsmove-range.controller.tss');
                                     this._commandService.executeCommand(MoveRangeCommand.id, params);
                                 })
                             )
