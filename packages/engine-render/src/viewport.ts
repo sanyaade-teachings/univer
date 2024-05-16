@@ -167,7 +167,6 @@ export class Viewport {
 
     private _preViewportInfo: Nullable<IViewportInfo>;
 
-
     /**
      * viewbound of cache area, cache area is slightly bigger than viewbound.
      */
@@ -200,7 +199,6 @@ export class Viewport {
      */
     bufferEdgeX: number = 0;
     bufferEdgeY: number = 0;
-
 
     constructor(viewportKey: string, scene: ThinScene, props?: IViewProps) {
         this._viewportKey = viewportKey;
@@ -721,7 +719,6 @@ export class Viewport {
         this._scrollRendered();
     }
 
-
     private _makeDefaultViewport() {
         return {
             viewBound: {
@@ -806,7 +803,6 @@ export class Viewport {
         const topLeft = this.getRelativeVector(Vector2.FromArray([xFrom, yFrom]));
         const bottomRight = this.getRelativeVector(Vector2.FromArray([xTo, yTo]));
 
-
         const viewBound = {
             left: topLeft.x,
             right: bottomRight.x,
@@ -879,7 +875,6 @@ export class Viewport {
         const svCoord = sceneTrans.applyPoint(coord.subtract(Vector2.FromArray([scroll.x, scroll.y])));
         return svCoord;
     }
-
 
     // eslint-disable-next-line complexity, max-lines-per-function
     onMouseWheel(evt: IWheelEvent, state: EventState) {
@@ -1246,7 +1241,6 @@ export class Viewport {
             isTrigger,
         });
 
-
         if (this._scrollBar) {
             this._scrollBar.makeDirty(true);
         }
@@ -1310,7 +1304,6 @@ export class Viewport {
             (diffY < 0 && Math.abs(viewBound.bottom - cacheBounds.bottom) < edgeY)) ? 0b10 : 0b00;
 
         const shouldCacheUpdate = nearEdge | viewBoundOutCacheArea;
-
 
         // 这样判断不足, 例如当 viewBound 在 cache top 的边缘但是往下滑动
         // 只要是在 cacheBounds 核心区域内就利用 cache
