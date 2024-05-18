@@ -213,3 +213,150 @@ export class HitCanvas extends Canvas {
         this.setSize(props.width!, props.height!);
     }
 }
+
+
+export class UniverOffScreenCanvas {
+    isCache = false;
+
+    private _pixelRatio = 1;
+
+    private _canvasEle: Nullable<HTMLCanvasElement>;
+
+    private _context: Nullable<UniverRenderingContext>;
+
+    private _width = 0;
+
+    private _height = 0;
+
+    constructor(props?: ICanvasProps) {
+        props = props || {};
+
+        this._canvasEle = createCanvasElement();
+        // set inline styles
+        this._canvasEle.style.padding = '0';
+        this._canvasEle.style.margin = '0';
+        this._canvasEle.style.border = '0';
+        this._canvasEle.style.background = 'transparent';
+        this._canvasEle.style.position = 'absolute';
+        this._canvasEle.style.top = '0';
+        this._canvasEle.style.left = '0';
+        this._canvasEle.style.zIndex = '8';
+
+        this._canvasEle.className = 'univer-offscreen-canvas';
+
+        // support focus
+        this._canvasEle.tabIndex = 1;
+        this._canvasEle.style.touchAction = 'none';
+        this._canvasEle.style.outline = '0';
+
+        // const context = this._canvasEle.getContext('2d');
+
+        // if (context == null) {
+        //     throw new Error('context is not support');
+        // }
+
+        // if (props.mode === CanvasRenderMode.Printing) {
+        //     this._context = new UniverPrintingContext(context);
+        // } else {
+        //     this._context = new UniverRenderingContext(context);
+        // }
+
+        this.setSize(props.width, props.height, props.pixelRatio);
+    }
+
+    getCanvasEle() {
+        return this._canvasEle!;
+    }
+
+    /**
+     * get canvas context
+     * @method
+     * @returns {CanvasContext} context
+     */
+    getContext() {
+        return this._context!;
+    }
+
+    getPixelRatio() {
+        return this._pixelRatio;
+    }
+
+    getWidth() {
+        return this._width;
+    }
+
+    getHeight() {
+        return this._height;
+    }
+
+    setSize(width?: number, height?: number, pixelRatioParam?: number) {
+        // this.setWidth(width || 0);
+        // this.setHeight(height || 0);
+        this._pixelRatio = pixelRatioParam || getDevicePixelRatio();
+
+        if (width !== undefined) {
+            this.getCanvasEle().width = width * this._pixelRatio;
+
+            this._width = this.getCanvasEle().width / this._pixelRatio;
+
+            this.getCanvasEle().style.width = `${this._width}px`;
+        }
+
+        if (height !== undefined) {
+            this.getCanvasEle().height = height * this._pixelRatio;
+
+            this._height = this.getCanvasEle().height / this._pixelRatio;
+
+            this.getCanvasEle().style.height = `${this._height}px`;
+        }
+
+        // this.getContext().setTransform(this._pixelRatio, 0, 0, this._pixelRatio, 0, 0);
+    }
+
+    setPixelRatio(pixelRatio: number) {
+        if (this._width === 0 || this._height === 0) {
+            return;
+        }
+        if (pixelRatio < 1) {
+            pixelRatio = 1;
+        }
+        this.setSize(this._width, this._height, pixelRatio);
+    }
+
+    dispose() {
+        this.clear();
+        this._canvasEle?.remove();
+        this._canvasEle = null;
+        this._context = null;
+    }
+
+    clear() {
+        const ctx = this.getContext();
+        ctx.clearRect(0, 0, this._width * this._pixelRatio, this._height * this._pixelRatio);
+    }
+
+    /**
+     * to data url
+     * @method
+     * @param {string} mimeType
+     * @param {number} quality between 0 and 1 for jpg mime types
+     * @returns {string} data url string
+     */
+    toDataURL(mimeType: string, quality: number) {
+        try {
+            // If this call fails (due to browser bug, like in Firefox 3.6),
+            // then revert to previous no-parameter image/png behavior
+            return this.getCanvasEle().toDataURL(mimeType, quality);
+        } catch (e) {
+            try {
+                return this.getCanvasEle().toDataURL();
+            } catch (err: unknown) {
+                const { message } = err as Error;
+                console.error(
+                    `Unable to get data URL. ${message} For more info read https://universheet.net/docs/Canvas.html.`
+                );
+                return '';
+            }
+        }
+    }
+}

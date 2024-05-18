@@ -24,7 +24,7 @@ import { inCurrentAndAboveViewRanges, inRowViewRanges, inViewRanges, mergeRangeI
 import type { UniverRenderingContext } from '../../../context';
 import type { Documents } from '../../docs/document';
 import { SpreadsheetExtensionRegistry } from '../../extension';
-import type { IFontCacheItem } from '../interfaces';
+import type { IFontCacheItem, IStylesCache } from '../interfaces';
 import type { SheetComponent } from '../sheet-component';
 import { getDocsSkeletonPageSize, type SpreadsheetSkeleton } from '../sheet-skeleton';
 import { FIX_ONE_PIXEL_BLUR_OFFSET } from '../../../basics';
@@ -42,6 +42,7 @@ export interface ISheetFontRenderExtension {
         isSkip?: boolean;
     };
 };
+type FontList = IStylesCache['font'];
 export class Font extends SheetExtension {
     override uKey = UNIQUE_KEY;
 
@@ -57,9 +58,9 @@ export class Font extends SheetExtension {
         parentScale: IScale,
         spreadsheetSkeleton: SpreadsheetSkeleton,
         diffRanges: IRange[],
-        moreBoundsInfo: { viewRanges: IRange[]; checkOutOfViewBound?: boolean; viewPortKey: string }
+        moreBoundsInfo: { viewRanges: IRange[]; checkOutOfViewBound?: boolean; viewPortKey: string; offscreenWorker?: Worker }
     ) {
-        const { viewRanges = [], checkOutOfViewBound } = moreBoundsInfo;
+        const { viewRanges = [], checkOutOfViewBound, offscreenWorker } = moreBoundsInfo;
         const { stylesCache, dataMergeCache, overflowCache, worksheet } = spreadsheetSkeleton;
         const { font: fontList } = stylesCache;
         if (!spreadsheetSkeleton || !worksheet) {
@@ -80,6 +81,26 @@ export class Font extends SheetExtension {
         }
         ctx.save();
         const scale = this._getScale(parentScale);
+        this.iteratorFontList(fontList, {
+            ...moreBoundsInfo,
+            ctx,
+            worksheet,
+            diffRanges,
+            rowHeightAccumulation, columnTotalWidth, columnWidthAccumulation, rowTotalHeight,
+            scale,
+            dataMergeCache, overflowCache,
+        } as const);
+
+        ctx.restore();
+    }
+
+    private iteratorFontList(fontList: FontList, {
+        worksheet,
+        ctx,
+        diffRanges, scale,
+        rowHeightAccumulation,
+        columnWidthAccumulation,
+        dataMergeCache, overflowCache, viewRanges = [], checkOutOfViewBound, offscreenWorker }: any) {
         fontList &&
             Object.keys(fontList).forEach((fontFormat: string) => {
                 const fontObjectArray = fontList[fontFormat];
@@ -270,7 +291,6 @@ export class Font extends SheetExtension {
                     ctx.restore();
                 });
             });
-        ctx.restore();
     }
 
     private _renderDocuments(

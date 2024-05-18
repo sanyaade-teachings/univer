@@ -33,6 +33,8 @@ export class UniverSheetsFilterPlugin extends Plugin {
         ([
             [SheetsFilterService],
             [SheetsFilterController],
-        ] as Dependency[]).forEach((d) => injector.add(d));
+        ] as Dependency[]).forEach((d) => {
+            return injector.add(d);
+        });
     }
 }

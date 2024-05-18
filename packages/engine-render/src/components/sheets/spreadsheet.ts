@@ -134,10 +134,24 @@ export class Spreadsheet extends SheetComponent {
             : undefined;
         const viewRanges = [spreadsheetSkeleton.getRowColumnSegmentByViewBound(viewportInfo?.cacheBound)];
         const extensions = this.getExtensionsByOrder();
+
+        const { offscreenWorker } = viewportInfo;
+        const drawParam = {
+            parentScale,
+            diffRanges,
+            viewRanges,
+            checkOutOfViewBound: true,
+        };
+        // const msgc = new MessageChannel();
+        // const complexObject = { a: 1, fn: () => { } };
+        // msgc.port1.postMessage(complexObject, [complexObject]);
+        // msgc.port1.postMessage(extensions, [extensions]);
+        offscreenWorker?.postMessage({ msg: 'draw', drawParam });
         for (const extension of extensions) {
             // const timeKey = `extension ${viewportInfo.viewPortKey}:${extension.constructor.name}`;
             // console.time(timeKey);
             extension.draw(ctx, parentScale, spreadsheetSkeleton, diffRanges, {
+                offscreenWorker,
                 viewRanges,
                 checkOutOfViewBound: true,
             });
@@ -241,7 +255,7 @@ export class Spreadsheet extends SheetComponent {
     }
 
     renderByViewport(mainCtx: UniverRenderingContext, viewportInfo: IViewportInfo, spreadsheetSkeleton: SpreadsheetSkeleton) {
-        const { diffBounds, diffX, diffY, viewPortPosition, cacheCanvas, leftOrigin, topOrigin, bufferEdgeX, bufferEdgeY, isDirty: isViewportDirty, isForceDirty: isViewportForceDirty } = viewportInfo as Required<IViewportInfo>;
+        const { diffBounds, diffX, diffY, viewPortPosition, cacheCanvas, leftOrigin, topOrigin, bufferEdgeX, bufferEdgeY, isDirty: isViewportDirty, isForceDirty: isViewportForceDirty, offscreenWorker } = viewportInfo as Required<IViewportInfo>;
         const { rowHeaderWidth, columnHeaderHeight } = spreadsheetSkeleton;
         const { a: scaleX = 1, d: scaleY = 1 } = mainCtx.getTransform();
         const bufferEdgeSizeX = bufferEdgeX * scaleX / window.devicePixelRatio;
@@ -262,6 +276,7 @@ export class Spreadsheet extends SheetComponent {
             // scrolling && no dirty
             this.paintNewAreaOfCacheCanvas(viewportInfo, {
                 cacheCanvas, cacheCtx, mainCtx, topOrigin, leftOrigin, bufferEdgeX, bufferEdgeY, scaleX, scaleY, columnHeaderHeight, rowHeaderWidth,
+                offscreenWorker,
             });
         }
         // support for browser native zoom (only windows has this problem)
@@ -272,7 +287,10 @@ export class Spreadsheet extends SheetComponent {
     }
 
     paintNewAreaOfCacheCanvas(viewportBoundsInfo: IViewportInfo, param: {
-        cacheCanvas: Canvas; cacheCtx: UniverRenderingContext; mainCtx: UniverRenderingContext;
+        cacheCanvas: Canvas;
+        cacheCtx: UniverRenderingContext;
+        mainCtx: UniverRenderingContext;
+        offscreenWorker: Worker;
         topOrigin: number;
         leftOrigin: number;
         bufferEdgeX: number;
@@ -450,8 +468,6 @@ export class Spreadsheet extends SheetComponent {
             return Math.round(num * scale);
         };
         ctx.imageSmoothingEnabled = false;
-        // ctx.imageSmoothingEnabled = true;
-        // ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(
             cacheCanvas.getCanvasEle(),
             fn(sx, pixelRatio),

@@ -72,6 +72,7 @@ const ctx = await esbuild[args.watch ? 'context' : 'build']({
         // sheets
         './src/sheets/main.ts',
         './src/sheets/worker.ts',
+        './src/sheets/canvasworker.ts',
 
         // sheets-multi
         './src/sheets-multi/main.tsx',

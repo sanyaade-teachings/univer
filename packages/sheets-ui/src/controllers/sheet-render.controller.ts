@@ -49,6 +49,9 @@ interface ISetWorksheetMutationParams {
     subUnitId: string;
 }
 
+/**
+ * deps injected by sheets-ui-plugin
+ */
 @OnLifecycle(LifecycleStages.Ready, SheetRenderController)
 export class SheetRenderController extends RxDisposable {
     private _skeletonChangeMutations = new Set<string>();
@@ -138,6 +141,8 @@ export class SheetRenderController extends RxDisposable {
         this._renderManagerService.createRender(unitId);
         this._renderManagerService.setCurrent(unitId);
         const sheetId = workbook.getActiveSheet().getSheetId();
+        // setCurrent 之后才有 current skelenton
+        console.log('getCurrent', this._sheetSkeletonManagerService.getCurrent());
         this._sheetSkeletonManagerService.setCurrent({ sheetId, unitId });
     }
 
@@ -215,6 +220,7 @@ export class SheetRenderController extends RxDisposable {
         if (spreadsheet) {
             spreadsheet.makeDirty(); // refresh spreadsheet
         }
+        window.scene = scene;
         scene.makeDirty();
         if (!command.params) return;
         const cmdParams = command.params as Record<string, any>;

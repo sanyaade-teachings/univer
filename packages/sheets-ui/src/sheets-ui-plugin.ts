@@ -84,6 +84,8 @@ export class UniverSheetsUIPlugin extends Plugin {
         @IUniverInstanceService private readonly _univerInstanceService: IUniverInstanceService
     ) {
         super();
+        const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
+        console.log('UI plugin constructor', prefix);
 
         this._localeService.load({
             zhCN,
@@ -128,11 +130,35 @@ export class UniverSheetsUIPlugin extends Plugin {
                 [FormatPainterController],
             ] as Dependency[]
         ).forEach((d) => injector.add(d));
+
+        const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
+        console.log('UI plugin', prefix);
     }
 
     override onReady(): void {
         this._markSheetAsFocused();
         this._registerRenderControllers();
+        const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
+        console.log('UI plugin', prefix);
+        if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+            self.onmessage = (e) => {
+                console.log('onmessage', prefix, e.data);
+            };
+        }
+    }
+
+    override onRendered(): void {
+        const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
+        const skService = this._injector.get(SheetSkeletonManagerService);
+        const sk = skService.getCurrent()?.skeleton!;
+        const { rowHeightAccumulation, columnWidthAccumulation, rowHeaderWidth, columnHeaderHeight } = sk;
+        console.log(prefix, 'rowHeightAccumulation, columnWidthAccumulation, rowHeaderWidth, columnHeaderHeight', rowHeightAccumulation, columnWidthAccumulation, rowHeaderWidth, columnHeaderHeight);
+
+        if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+            self.onmessage = (e) => {
+                console.log('onmessage', prefix, e.data);
+            };
+        }
     }
 
     private _registerRenderControllers(): void {

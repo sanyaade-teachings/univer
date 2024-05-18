@@ -26,7 +26,7 @@ import { Transform } from './basics/transform';
 import type { IBoundRectNoAngle, IViewportInfo } from './basics/vector2';
 import { Vector2 } from './basics/vector2';
 import { subtractViewportRange } from './basics/viewport-subtract';
-import { Canvas as UniverCanvas } from './canvas';
+import { Canvas as UniverCanvas, UniverOffScreenCanvas } from './canvas';
 import type { UniverRenderingContext } from './context';
 import type { Scene } from './scene';
 import type { BaseScrollBar } from './shape/base-scroll-bar';
@@ -244,9 +244,18 @@ export class Viewport {
         this._resizeHandler();
     }
 
+
+    private cacheOffscreen: UniverOffScreenCanvas;
+    private offscreen: OffscreenCanvas;
+    private offscreenWorker: Worker;
     initCacheCanvas(props?: IViewProps) {
         if (props?.allowCache) {
+            console.log('initCacheCanvas::', this.viewportKey);
             this._cacheCanvas = new UniverCanvas();
+            this.cacheOffscreen = new UniverOffScreenCanvas();
+            const worker = this.offscreenWorker = new Worker('./canvasworker.js');
+            const offscreen = this.cacheOffscreen.getCanvasEle().transferControlToOffscreen();
+            worker.postMessage({ msg: 'init', canvas: offscreen }, [offscreen]);
         }
         this._allowCache = props?.allowCache || true;
         this.bufferEdgeX = props?.bufferEdgeX || 0;
@@ -692,8 +701,8 @@ export class Viewport {
         }
 
         mainCtx.transform(tm[0], tm[1], tm[2], tm[3], tm[4], tm[5]);
-        const viewPortInfo = this._calcViewportInfo();
-
+        const viewPortInfo:IViewportInfo = this._calcViewportInfo();
+        viewPortInfo.offscreenWorker = this.offscreenWorker;
         objects.forEach((o) => {
             o.render(mainCtx, viewPortInfo);
         });

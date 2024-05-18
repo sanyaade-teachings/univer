@@ -891,6 +891,8 @@ export interface IViewportInfo {
     shouldCacheUpdate: number;
     sceneTrans: Transform;
     cacheCanvas?: Canvas;
+    OffscreenCanvas?: OffscreenCanvas;
+    offscreenWorker?: Worker;
 
     leftOrigin: number;
     topOrigin: number;
