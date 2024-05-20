@@ -52,6 +52,8 @@ export class UniverSheetsPlugin extends Plugin {
         @Inject(Injector) override readonly _injector: Injector
     ) {
         super();
+        const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
+        console.log('UniverSheetsPlugin init!!!', prefix);
 
         this._initializeDependencies(_injector);
     }

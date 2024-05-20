@@ -78,6 +78,9 @@ export class Univer {
         locale && this._injector.get(LocaleService).setLocale(locale);
         logLevel && this._injector.get(ILogService).setLogLevel(logLevel);
 
+        const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
+        console.log('Univer init', prefix);
+
         this._init(injector);
         const _a = this._pluginService;
     }
@@ -127,12 +130,14 @@ export class Univer {
         this._univerInstanceService.registerCtorForType(UniverInstanceType.UNIVER_SLIDE, SlideDataModel);
 
         const univerInstanceService = injector.get(IUniverInstanceService) as UniverInstanceService;
+        const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
         univerInstanceService.__setCreateHandler(
             (type: UnitType, data, ctor) => {
                 if (!this._startedTypes.has(type)) {
                     this._pluginService.startPluginForType(type);
                     this._startedTypes.add(type);
 
+                    console.log('Univer ___init', prefix);
                     const model = injector.createInstance(ctor, data);
                     univerInstanceService.__addUnit(model);
 

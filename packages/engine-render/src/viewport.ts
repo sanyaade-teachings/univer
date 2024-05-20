@@ -244,18 +244,17 @@ export class Viewport {
         this._resizeHandler();
     }
 
-
     private cacheOffscreen: UniverOffScreenCanvas;
     private offscreen: OffscreenCanvas;
     private offscreenWorker: Worker;
     initCacheCanvas(props?: IViewProps) {
-        if (props?.allowCache) {
+        if (this.viewportKey === 'viewMain' && this.scene.sceneKey === '_UNIVER_SCENE_workbook-01') {
             console.log('initCacheCanvas::', this.viewportKey);
             this._cacheCanvas = new UniverCanvas();
             this.cacheOffscreen = new UniverOffScreenCanvas();
-            const worker = this.offscreenWorker = new Worker('./canvasworker.js');
-            const offscreen = this.cacheOffscreen.getCanvasEle().transferControlToOffscreen();
-            worker.postMessage({ msg: 'init', canvas: offscreen }, [offscreen]);
+            // const worker = this.offscreenWorker = new Worker('./canvasworker.js');
+            // const offscreen = this.cacheOffscreen.getCanvasEle().transferControlToOffscreen();
+            // worker.postMessage({ msg: 'init', canvas: offscreen }, [offscreen]);
         }
         this._allowCache = props?.allowCache || true;
         this.bufferEdgeX = props?.bufferEdgeX || 0;
@@ -701,7 +700,7 @@ export class Viewport {
         }
 
         mainCtx.transform(tm[0], tm[1], tm[2], tm[3], tm[4], tm[5]);
-        const viewPortInfo:IViewportInfo = this._calcViewportInfo();
+        const viewPortInfo: IViewportInfo = this._calcViewportInfo();
         viewPortInfo.offscreenWorker = this.offscreenWorker;
         objects.forEach((o) => {
             o.render(mainCtx, viewPortInfo);

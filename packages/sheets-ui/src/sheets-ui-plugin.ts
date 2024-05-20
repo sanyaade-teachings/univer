@@ -85,7 +85,7 @@ export class UniverSheetsUIPlugin extends Plugin {
     ) {
         super();
         const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
-        console.log('UI plugin constructor', prefix);
+        console.log('UniverSheets  UIPlugin init!!!', prefix);
 
         this._localeService.load({
             zhCN,
@@ -130,16 +130,13 @@ export class UniverSheetsUIPlugin extends Plugin {
                 [FormatPainterController],
             ] as Dependency[]
         ).forEach((d) => injector.add(d));
-
-        const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
-        console.log('UI plugin', prefix);
     }
 
     override onReady(): void {
         this._markSheetAsFocused();
         this._registerRenderControllers();
         const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
-        console.log('UI plugin', prefix);
+        console.log('SHeet UI plugin onReady', prefix);
         if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
             self.onmessage = (e) => {
                 console.log('onmessage', prefix, e.data);

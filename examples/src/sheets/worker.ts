@@ -20,6 +20,8 @@ import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc';
 import { UniverSheetsPlugin } from '@univerjs/sheets';
 import { UniverSheetsFilterPlugin } from '@univerjs/sheets-filter';
 
+const groupname = '[worker] pre worker new univer';
+console.group(groupname);
 // Univer web worker is also a univer application.
 const univer = new Univer({
     locale: LocaleType.ZH_CN,
@@ -29,6 +31,8 @@ univer.registerPlugin(UniverSheetsPlugin);
 univer.registerPlugin(UniverFormulaEnginePlugin);
 univer.registerPlugin(UniverRPCWorkerThreadPlugin);
 univer.registerPlugin(UniverSheetsFilterPlugin);
+
+console.groupEnd();
 
 declare let self: WorkerGlobalScope & typeof globalThis & { univer: Univer };
 self.univer = univer;

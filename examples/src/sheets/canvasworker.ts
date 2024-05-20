@@ -15,35 +15,36 @@
  */
 
 import { LocaleType, Univer } from '@univerjs/core';
-import { UniverDocsUIPlugin } from '@univerjs/docs-ui/docs-ui-plugin.js';
-import { UniverDocsPlugin } from '@univerjs/docs/doc-plugin.js';
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula';
-import { UniverRenderEnginePlugin } from '@univerjs/engine-render/render-engine.js';
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render';
 import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc';
 import { UniverSheetsPlugin } from '@univerjs/sheets';
 import { UniverSheetsFilterPlugin } from '@univerjs/sheets-filter';
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui';
+import { UniverUIPlugin } from '@univerjs/ui';
 
+const groupname = '[worker] canvasworker new univer';
+console.group(groupname);
 // Univer web worker is also a univer application.
 const univer = new Univer({
     locale: LocaleType.ZH_CN,
 });
 
-
-univer.registerPlugin(UniverDocsPlugin, {
-    hasScroll: false,
-});
 univer.registerPlugin(UniverRenderEnginePlugin);
-univer.registerPlugin(UniverDocsUIPlugin);
+// univer.registerPlugin(UniverUIPlugin, {
+//     container: 'app',
+//     header: true,
+//     footer: true,
+// });
 univer.registerPlugin(UniverSheetsPlugin);
-univer.registerPlugin(UniverSheetsUIPlugin);
-univer.registerPlugin(UniverSheetsPlugin);
+// univer.registerPlugin(UniverSheetsUIPlugin);
 univer.registerPlugin(UniverFormulaEnginePlugin);
 univer.registerPlugin(UniverRPCWorkerThreadPlugin);
 univer.registerPlugin(UniverSheetsFilterPlugin);
 
+console.groupEnd();
+const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
+// console.log('canvas worker', prefix);
+
 declare let self: WorkerGlobalScope & typeof globalThis & { univer: Univer };
 self.univer = univer;
-
-const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
-console.log('canvas worker', prefix);

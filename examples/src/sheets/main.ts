@@ -78,12 +78,11 @@ univer.registerPlugin(UniverFormulaEnginePlugin, {
 });
 univer.registerPlugin(UniverSheetsFormulaPlugin);
 univer.registerPlugin(UniverRPCMainThreadPlugin, {
-    workerURL: './worker.js',
-} as IUniverRPCMainThreadConfig);
-univer.registerPlugin(UniverRPCMainThreadPlugin, {
     workerURL: './canvasworker.js',
 } as IUniverRPCMainThreadConfig);
-
+// univer.registerPlugin(UniverRPCMainThreadPlugin, {
+//     workerURL: './worker.js',
+// } as IUniverRPCMainThreadConfig);
 
 // find replace
 univer.registerPlugin(UniverFindReplacePlugin);

@@ -35,6 +35,8 @@ export class UniverRenderEnginePlugin extends Plugin {
         @Inject(Injector) override readonly _injector: Injector
     ) {
         super();
+        const prefix = (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) ? '[Worker]' : '[Main Thread]';
+        console.log('UniverRenderEnginePlugin', prefix);
 
         this._injector.add([IRenderingEngine, { useFactory: () => new Engine() }]);
 

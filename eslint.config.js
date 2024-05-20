@@ -47,6 +47,7 @@ export default antfu({
         barrel,
     },
     rules: {
+        'no-console': 'off',
         'barrel/no-barrel-import': 2,
         'header/header': [
             2,
