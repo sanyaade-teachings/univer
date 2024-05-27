@@ -84,6 +84,7 @@
         "dayjs": "^1.11.10"
     },
     "devDependencies": {
+        "@univerjs-pro/sheets-print": "workspace:*",
         "@univerjs/core": "workspace:*",
         "@univerjs/design": "workspace:*",
         "@univerjs/docs": "workspace:*",

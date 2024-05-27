@@ -90,6 +90,7 @@ const locale = {
             filterErr: '该范围已被保护，目前无筛选权限。如需筛选，请联系创建者。',
             operatorSheetErr: '该工作表已被保护，目前无操作工作表权限。如需操作工作表，请联系创建者。',
             insertOrDeleteMoveRangeErr: '插入、删除区域与保护范围相交，暂不支持此操作。',
+            printErr: '该工作表已被保护，目前无打印权限。如需打印，请联系创建者。',
         },
         button: {
             confirm: '确认',

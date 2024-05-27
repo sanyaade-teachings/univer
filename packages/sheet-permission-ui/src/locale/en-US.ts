@@ -90,6 +90,7 @@ const locale = {
             filterErr: 'The range is protected, and you do not have filtering permission. To filter, please contact the creator.',
             operatorSheetErr: 'The worksheet is protected, and you do not have permission to operate the worksheet. To operate the worksheet, please contact the creator.',
             insertOrDeleteMoveRangeErr: 'The inserted or deleted range intersects with the protected range, and this operation is not supported for now.',
+            printErr: 'The worksheet is protected, and you do not have permission to print. To print, please contact the creator.',
         },
         button: {
             confirm: 'Confirm',

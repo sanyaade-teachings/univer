@@ -25,8 +25,8 @@ import type { ICellDataForSheetInterceptor, IRange, Workbook } from '@univerjs/c
 import { ICommandService, IUniverInstanceService, Rectangle, UniverInstanceType } from '@univerjs/core';
 import { AddConditionalRuleMutation, ConditionalFormattingRuleModel, DeleteConditionalRuleMutation, MoveConditionalRuleMutation, SetConditionalRuleMutation } from '@univerjs/sheets-conditional-formatting';
 
-import { getCurrentRangeDisable$ } from '@univerjs/sheets-ui/controllers/menu/menu-util.js';
 import { UnitAction } from '@univerjs/protocol';
+import { getCurrentRangeDisable$ } from '@univerjs/sheets-ui';
 import { CF_MENU_OPERATION, OpenConditionalFormattingOperator } from '../commands/operations/open-conditional-formatting-panel';
 
 const commandList = [SetWorksheetActiveOperation.id, AddConditionalRuleMutation.id, SetConditionalRuleMutation.id, DeleteConditionalRuleMutation.id, MoveConditionalRuleMutation.id];
