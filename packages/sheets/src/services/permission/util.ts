@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
-export type { GetWorkbookPermission, GetWorksheetPermission } from './type';
-export { defaultWorksheetPermissionPoint, getAllWorksheetPermissionPoint, getAllWorksheetPermissionPointByPointPanel } from './worksheet-permission/utils';
-export { changeEnumToString } from './util';
+import { UnitAction } from '@univerjs/protocol';
+
+export function changeEnumToString(action: UnitAction): string {
+    return UnitAction[action];
+}

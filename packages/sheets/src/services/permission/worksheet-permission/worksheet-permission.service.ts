@@ -50,6 +50,7 @@ import {
 import type { IObjectModel, IObjectPointModel, IWorksheetPermissionServiceMethods } from '../type';
 import { SheetInterceptorService } from '../../sheet-interceptor/sheet-interceptor.service';
 import { INTERCEPTOR_POINT } from '../../sheet-interceptor/interceptor-const';
+import { changeEnumToString } from '../util';
 import { WorksheetProtectionRuleModel } from './worksheet-permission-rule.model';
 import { getAllWorksheetPermissionPoint, getAllWorksheetPermissionPointByPointPanel } from './utils';
 import type { IWorksheetProtectionRenderCellData } from './type';
@@ -60,6 +61,7 @@ export const POINT_MODEL_PLUGIN_NAME = 'SHEET_WORKSHEET_PROTECTION_POINT_PLUGIN'
 
 @OnLifecycle(LifecycleStages.Starting, WorksheetPermissionService)
 export class WorksheetPermissionService extends RxDisposable implements IWorksheetPermissionServiceMethods {
+    // eslint-disable-next-line ts/no-explicit-any
     [key: string]: any;
 
     constructor(
@@ -304,9 +306,10 @@ export class WorksheetPermissionService extends RxDisposable implements IWorkshe
 
         permissions.forEach(({ type, classGroup }) => {
             const { get$, get, set } = this._createPermissionMethods(classGroup as { WorkbookPermissionClass: new (unitId: string) => IPermissionPoint; WorksheetPermissionClass: new (unitId: string, subUnitId: string) => IPermissionPoint });
-            this[`get${type}Permission$`] = get$;
-            this[`get${type}Permission`] = get;
-            this[`set${type}Permission`] = set;
+            const actionString = changeEnumToString(type);
+            this[`get${actionString}Permission$`] = get$;
+            this[`get${actionString}Permission`] = get;
+            this[`set${actionString}Permission`] = set;
         });
     }
 

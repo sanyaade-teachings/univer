@@ -20,7 +20,7 @@
 import type { ICellData, ICellDataForSheetInterceptor, ICommandInfo, IObjectMatrixPrimitiveType, IPermissionTypesInRunTime, IRange, ISheetDataValidationRule, Nullable, Workbook } from '@univerjs/core';
 import { DisposableCollection, ICommandService, IPermissionService, IUniverInstanceService, LifecycleStages, LocaleService, ObjectMatrix, OnLifecycle, Rectangle, RxDisposable, UniverInstanceType } from '@univerjs/core';
 import type { GetWorksheetPermission, IMoveColsCommandParams, IMoveRangeCommandParams, IMoveRowsCommandParams, ISetRangeValuesCommandParams, ISetSpecificColsVisibleCommandParams, ISetSpecificRowsVisibleCommandParams, ISetWorksheetNameMutationParams } from '@univerjs/sheets';
-import { ClearSelectionContentCommand, DeleteRangeMoveLeftCommand, DeleteRangeMoveUpCommand, DeltaColumnWidthCommand, DeltaRowHeightCommand, InsertRangeMoveDownCommand, InsertRangeMoveRightCommand, MoveColsCommand, MoveRangeCommand, MoveRowsCommand, RangeProtectionRuleModel, SelectionManagerService, SetBackgroundColorCommand, SetColWidthCommand, SetRangeValuesCommand, SetRowHeightCommand, SetSelectedColsVisibleCommand, SetSelectedRowsVisibleCommand, SetSpecificColsVisibleCommand, SetSpecificRowsVisibleCommand, SetWorksheetNameCommand, SetWorksheetNameMutation, SetWorksheetOrderCommand, SetWorksheetRowIsAutoHeightCommand, SetWorksheetShowCommand, WorkbookEditablePermission, WorkbookManageCollaboratorPermission, WorkbookPermissionService, WorksheetEditPermission, WorksheetPermissionService, WorksheetProtectionRuleModel, WorksheetSetColumnStylePermission, WorksheetSetRowStylePermission } from '@univerjs/sheets';
+import { changeEnumToString, ClearSelectionContentCommand, DeleteRangeMoveLeftCommand, DeleteRangeMoveUpCommand, DeltaColumnWidthCommand, DeltaRowHeightCommand, InsertRangeMoveDownCommand, InsertRangeMoveRightCommand, MoveColsCommand, MoveRangeCommand, MoveRowsCommand, RangeProtectionRuleModel, SelectionManagerService, SetBackgroundColorCommand, SetColWidthCommand, SetRangeValuesCommand, SetRowHeightCommand, SetSelectedColsVisibleCommand, SetSelectedRowsVisibleCommand, SetSpecificColsVisibleCommand, SetSpecificRowsVisibleCommand, SetWorksheetNameCommand, SetWorksheetNameMutation, SetWorksheetOrderCommand, SetWorksheetRowIsAutoHeightCommand, SetWorksheetShowCommand, WorkbookEditablePermission, WorkbookManageCollaboratorPermission, WorkbookPermissionService, WorksheetEditPermission, WorksheetPermissionService, WorksheetProtectionRuleModel, WorksheetSetColumnStylePermission, WorksheetSetRowStylePermission } from '@univerjs/sheets';
 import { Inject } from '@wendellhu/redi';
 import { IDialogService } from '@univerjs/ui';
 
@@ -414,7 +414,8 @@ export class SheetPermissionInterceptorController extends RxDisposable {
         const { workbookTypes = [UnitAction.Edit], worksheetTypes, rangeTypes } = permissionTypes;
         if (workbookTypes) {
             const workbookDisable = workbookTypes.some((type) => {
-                const workbookPermissionCheckFnName = `get${type}Permission` as keyof WorkbookPermissionService;
+                const actionString = changeEnumToString(type);
+                const workbookPermissionCheckFnName = `get${actionString}Permission`;
                 const workbookPermissionCheckFn = this._workbookPermissionService[workbookPermissionCheckFnName];
                 const workbookPermission = workbookPermissionCheckFn(workbook.getUnitId());
                 return workbookPermission === false;
@@ -425,7 +426,8 @@ export class SheetPermissionInterceptorController extends RxDisposable {
         }
         if (worksheetTypes) {
             const worksheetDisable = worksheetTypes.some((type) => {
-                const worksheetPermissionCheckFnName = `get${type}Permission` as keyof WorksheetPermissionService;
+                const actionString = changeEnumToString(type);
+                const worksheetPermissionCheckFnName = `get${actionString}Permission` as keyof WorksheetPermissionService;
                 const worksheetPermissionCheckFn = this._worksheetPermissionService[worksheetPermissionCheckFnName] as GetWorksheetPermission;
                 const worksheetPermission = worksheetPermissionCheckFn({
                     unitId: workbook.getUnitId(),
@@ -463,7 +465,8 @@ export class SheetPermissionInterceptorController extends RxDisposable {
         const { workbookTypes = [UnitAction.Edit], worksheetTypes, rangeTypes } = permissionTypes;
         if (workbookTypes) {
             const workbookDisable = workbookTypes.some((type) => {
-                const workbookPermissionCheckFnName = `get${type}Permission` as keyof WorkbookPermissionService;
+                const actionType = changeEnumToString(type);
+                const workbookPermissionCheckFnName = `get${actionType}Permission`;
                 const workbookPermissionCheckFn = this._workbookPermissionService[workbookPermissionCheckFnName];
                 const workbookPermission = workbookPermissionCheckFn(workbook.getUnitId());
                 return workbookPermission === false;
@@ -474,7 +477,8 @@ export class SheetPermissionInterceptorController extends RxDisposable {
         }
         if (worksheetTypes) {
             const worksheetDisable = worksheetTypes.some((type) => {
-                const worksheetPermissionCheckFnName = `get${type}Permission` as keyof WorksheetPermissionService;
+                const actionType = changeEnumToString(type);
+                const worksheetPermissionCheckFnName = `get${actionType}Permission`;
                 const worksheetPermissionCheckFn = this._worksheetPermissionService[worksheetPermissionCheckFnName] as GetWorksheetPermission;
                 const worksheetPermission = worksheetPermissionCheckFn({
                     unitId: workbook.getUnitId(),

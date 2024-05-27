@@ -37,10 +37,12 @@ import {
     WorkbookViewPermission,
 } from '../permission-point';
 import type { IWorkbookPermissionServiceMethods } from '../type';
+import { changeEnumToString } from '../util';
 import { getAllWorkbookPermissionPoint } from './utils';
 
 @OnLifecycle(LifecycleStages.Starting, WorkbookPermissionService)
 export class WorkbookPermissionService extends Disposable implements IWorkbookPermissionServiceMethods {
+    // eslint-disable-next-line ts/no-explicit-any
     [key: string]: any;
 
     constructor(
@@ -125,9 +127,10 @@ export class WorkbookPermissionService extends Disposable implements IWorkbookPe
 
         permissions.forEach(({ type, class: PermissionClass }) => {
             const { get$, get, set } = this._createPermissionMethods(PermissionClass);
-            this[`get${type}Permission$`] = get$;
-            this[`get${type}Permission`] = get;
-            this[`set${type}Permission`] = set;
+            const actionString = changeEnumToString(type);
+            this[`get${actionString}Permission$`] = get$;
+            this[`get${actionString}Permission`] = get;
+            this[`set${actionString}Permission`] = set;
         });
     }
 }
