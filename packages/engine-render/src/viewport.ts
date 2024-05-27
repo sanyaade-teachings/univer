@@ -866,7 +866,7 @@ export class Viewport {
         const cacheViewPortPosition = this.expandBounds(viewPortPosition);
         const shouldCacheUpdate = this._calcCacheUpdate(viewBound, this._preCacheVisibleBound, diffX, diffY);
         if (shouldCacheUpdate) {
-            diffCacheBounds = this._calcDiffCacheBound(this._preCacheBound, cacheBound);
+            diffCacheBounds = this._calcDiffCacheBound(this._preCacheVisibleBound, cacheBound);
         }
 
         return {
@@ -1426,11 +1426,17 @@ export class Viewport {
                 right: Math.min(prevBound.right, currBound.right),
             });
         }
+        // for (const bound of additionalAreas) {
+        //     bound.left = bound.left - this.bufferEdgeX;
+        //     bound.right = bound.right + this.bufferEdgeX;
+        //     bound.top = bound.top - this.bufferEdgeY;
+        //     bound.bottom = bound.bottom + this.bufferEdgeY;
+        // }
         for (const bound of additionalAreas) {
-            bound.left = bound.left - this.bufferEdgeX;
-            bound.right = bound.right + this.bufferEdgeX;
-            bound.top = bound.top - this.bufferEdgeY;
-            bound.bottom = bound.bottom + this.bufferEdgeY;
+            bound.left = bound.left - 10;
+            bound.right = bound.right + 10;
+            bound.top = bound.top - 10;
+            bound.bottom = bound.bottom + 10;
         }
 
         return additionalAreas;

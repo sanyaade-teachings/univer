@@ -28,7 +28,7 @@ import { CommandType,
     toDisposable,
     UniverInstanceType,
 } from '@univerjs/core';
-import type { IViewportInfos, Rect, Scene, SpreadsheetColumnHeader, SpreadsheetRowHeader, Viewport } from '@univerjs/engine-render';
+import type { IBoundRectNoAngle, Rect, Scene, SpreadsheetColumnHeader, SpreadsheetRowHeader, Viewport } from '@univerjs/engine-render';
 import { IRenderManagerService, RENDER_RAW_FORMULA_KEY, Spreadsheet } from '@univerjs/engine-render';
 import {
     COMMAND_LISTENER_SKELETON_CHANGE,
@@ -269,19 +269,19 @@ export class SheetRenderController extends RxDisposable {
 
         const { rowHeightAccumulation, columnWidthAccumulation, rowHeaderWidth, columnHeaderHeight } = sk;
         // rowHeightAccumulation 已经表示的是行底部的高度
-        const dirtyBounds: IViewportInfos[] = [];
+        const dirtyBounds: IBoundRectNoAngle[] = [];
         for (const r of ranges) {
             const { startRow, endRow, startColumn, endColumn } = r;
             const top = startRow === 0 ? 0 : rowHeightAccumulation[startRow - 1] + columnHeaderHeight;
             const bottom = rowHeightAccumulation[endRow] + columnHeaderHeight;
             const left = startColumn === 0 ? 0 : columnWidthAccumulation[startColumn - 1] + rowHeaderWidth;
             const right = columnWidthAccumulation[endColumn] + rowHeaderWidth;
-            dirtyBounds.push({ top, left, bottom, right, width: right - left, height: bottom - top });
+            dirtyBounds.push({ top, left, bottom, right });
         }
         return dirtyBounds;
     }
 
-    private _markViewportDirty(viewports: Viewport[], dirtyBounds: IViewportInfos[]) {
+    private _markViewportDirty(viewports: Viewport[], dirtyBounds: IBoundRectNoAngle[]) {
         const activeViewports = viewports.filter((vp) => vp.isActive && vp.cacheBound);
         for (const vp of activeViewports) {
             for (const b of dirtyBounds) {

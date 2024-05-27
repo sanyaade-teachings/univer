@@ -107,3 +107,12 @@ export interface IPaintForScrolling {
     scaleX: number;
     scaleY: number;
 }
+
+export interface IAColumnNameCfg {
+    fontFamily: string;
+    fontColor: string;
+    fontSize: number;
+    backgroundColor: string;
+    textAlign: CanvasTextAlign;
+    textBaseline: CanvasTextBaseline;
+}

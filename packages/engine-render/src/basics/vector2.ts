@@ -900,11 +900,7 @@ export interface IViewportInfo {
     updatePrevCacheBounds?: (viewbound: IBoundRectNoAngle) => void;
 }
 
-export interface IViewportInfos {
-    left: number;
-    right: number;
-    top: number;
-    bottom: number;
+export interface IViewboundInfo extends IBoundRectNoAngle {
     width: number;
     height: number;
 }
