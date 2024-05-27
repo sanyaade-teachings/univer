@@ -17,16 +17,18 @@
 import type { IRange, IScale } from '@univerjs/core';
 import type { SpreadsheetSkeleton, UniverRenderingContext } from '@univerjs/engine-render';
 import { SheetExtension } from '@univerjs/engine-render';
+import { UnitAction } from '@univerjs/protocol';
 import type { IWorksheetProtectionRenderCellData } from './type';
 import { base64 } from './protect-background-img';
 
 export const worksheetProtectionKey = 'worksheet-protection';
-const EXTENSION_Z_INDEX = 44;
+const EXTENSION_CAN_VIEW_Z_INDEX = 25;
+const EXTENSION_CAN_NOT_VIEW_Z_INDEX = 80;
 
 export class WorksheetProtectionRenderExtension extends SheetExtension {
     override uKey = worksheetProtectionKey;
 
-    override Z_INDEX = EXTENSION_Z_INDEX;
+    override Z_INDEX = EXTENSION_CAN_VIEW_Z_INDEX;
     private _pattern: CanvasPattern | null;
 
     private _img = new Image();
@@ -56,15 +58,30 @@ export class WorksheetProtectionRenderExtension extends SheetExtension {
         const start = this.getCellIndex(startRow, startColumn, rowHeightAccumulation, columnWidthAccumulation, dataMergeCache);
         const end = this.getCellIndex(endRow, endColumn, rowHeightAccumulation, columnWidthAccumulation, dataMergeCache);
 
-        const { hasWorksheetRule = false } = worksheet.getCell(startRow, startColumn) as IWorksheetProtectionRenderCellData || {};
+        const { hasWorksheetRule = false, selectionProtection = [] } = worksheet.getCell(startRow, startColumn) as IWorksheetProtectionRenderCellData || {};
         if (!this._pattern) {
             return;
         }
+
+        if (selectionProtection.length > 0) {
+            const cellProtectionConfig = selectionProtection[0];
+            const viewPermission = cellProtectionConfig?.[UnitAction.View];
+            if (viewPermission) {
+                this.setZIndex(EXTENSION_CAN_VIEW_Z_INDEX);
+            } else {
+                this.setZIndex(EXTENSION_CAN_NOT_VIEW_Z_INDEX);
+            }
+        }
+
         ctx.fillStyle = this._pattern;
         if (hasWorksheetRule) {
             ctx.fillRect(start.startX, start.startY, end.endX - start.startX, end.endY - start.startY);
         }
 
         ctx.restore();
+    }
+
+    setZIndex(zIndex: number) {
+        this.Z_INDEX = zIndex;
     }
 }

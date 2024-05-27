@@ -20,13 +20,14 @@ import type { Spreadsheet } from '@univerjs/engine-render';
 import { throttleTime } from 'rxjs/operators';
 import type { Workbook } from '@univerjs/core';
 import { Disposable, IPermissionService, IUniverInstanceService, LifecycleStages, OnLifecycle, UniverInstanceType } from '@univerjs/core';
-import { RANGE_PROTECTION_RENDER_EXTENSION_KEY, RangeProtectionRenderExtension, RangeProtectionRuleModel } from '@univerjs/sheets';
+import { RANGE_PROTECTION_CAN_NOT_VIEW_RENDER_EXTENSION_KEY, RANGE_PROTECTION_CAN_VIEW_RENDER_EXTENSION_KEY, RangeProtectionCanNotViewRenderExtension, RangeProtectionCanViewRenderExtension, RangeProtectionRuleModel } from '@univerjs/sheets';
 import { SheetSkeletonManagerService } from '@univerjs/sheets-ui';
 import { merge } from 'rxjs';
 
 @OnLifecycle(LifecycleStages.Ready, PermissionRenderService)
 export class PermissionRenderService extends Disposable {
-    private _rangeProtectionRenderExtension = new RangeProtectionRenderExtension();
+    private _rangeProtectionCanViewRenderExtension = new RangeProtectionCanViewRenderExtension();
+    private _rangeProtectionCanNotViewRenderExtension = new RangeProtectionCanNotViewRenderExtension();
     constructor(
         @Inject(IRenderManagerService) private _renderManagerService: IRenderManagerService,
         @Inject(IUniverInstanceService) private _univerInstanceService: IUniverInstanceService,
@@ -38,8 +39,11 @@ export class PermissionRenderService extends Disposable {
         this._initRender();
         this._initSkeleton();
         this._rangeProtectionRuleModel.ruleChange$.subscribe((info) => {
-            if ((info.oldRule?.id && this._rangeProtectionRenderExtension.renderCache.has(info.oldRule.id)) || this._rangeProtectionRenderExtension.renderCache.has(info.rule.id)) {
-                this._rangeProtectionRenderExtension.clearCache();
+            if ((info.oldRule?.id && this._rangeProtectionCanViewRenderExtension.renderCache.has(info.oldRule.id)) || this._rangeProtectionCanViewRenderExtension.renderCache.has(info.rule.id)) {
+                this._rangeProtectionCanViewRenderExtension.clearCache();
+            }
+            if ((info.oldRule?.id && this._rangeProtectionCanNotViewRenderExtension.renderCache.has(info.oldRule.id)) || this._rangeProtectionCanNotViewRenderExtension.renderCache.has(info.rule.id)) {
+                this._rangeProtectionCanNotViewRenderExtension.clearCache();
             }
         });
     }
@@ -49,8 +53,11 @@ export class PermissionRenderService extends Disposable {
             const render = renderId && this._renderManagerService.getRenderById(renderId);
             const spreadsheetRender = render && render.mainComponent as Spreadsheet;
             if (spreadsheetRender) {
-                if (!spreadsheetRender.getExtensionByKey(RANGE_PROTECTION_RENDER_EXTENSION_KEY)) {
-                    spreadsheetRender.register(this._rangeProtectionRenderExtension);
+                if (!spreadsheetRender.getExtensionByKey(RANGE_PROTECTION_CAN_VIEW_RENDER_EXTENSION_KEY)) {
+                    spreadsheetRender.register(this._rangeProtectionCanViewRenderExtension);
+                }
+                if (!spreadsheetRender.getExtensionByKey(RANGE_PROTECTION_CAN_NOT_VIEW_RENDER_EXTENSION_KEY)) {
+                    spreadsheetRender.register(this._rangeProtectionCanNotViewRenderExtension);
                 }
             }
         };

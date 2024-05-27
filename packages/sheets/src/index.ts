@@ -357,7 +357,7 @@ export { AddRangeProtectionMutation, FactoryAddRangeProtectionMutation, type IAd
 export { DeleteRangeProtectionMutation, FactoryDeleteRangeProtectionMutation, type IDeleteSelectionProtectionMutationParams } from './commands/mutations/delete-range-protection.mutation';
 export { SetRangeProtectionMutation, FactorySetRangeProtectionMutation, type ISetRangeProtectionMutationParams } from './commands/mutations/set-range-protection.mutation';
 
-export { RangeProtectionRenderExtension, type IRangeProtectionRenderCellData, RANGE_PROTECTION_RENDER_EXTENSION_KEY } from './render/range-protection/range-protection.render';
+export { RangeProtectionCanViewRenderExtension, RangeProtectionCanNotViewRenderExtension, type IRangeProtectionRenderCellData, RANGE_PROTECTION_CAN_VIEW_RENDER_EXTENSION_KEY, RANGE_PROTECTION_CAN_NOT_VIEW_RENDER_EXTENSION_KEY } from './render/range-protection/range-protection.render';
 
 export { RangeProtectionRenderModel, type ICellPermission } from './model/range-protection-render.model';
 export { RangeProtectionRuleModel, type IObjectModel, type IRangeProtectionRule, type IModel } from './model/range-protection-rule.model';

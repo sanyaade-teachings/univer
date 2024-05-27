@@ -14,26 +14,29 @@
  * limitations under the License.
  */
 
-import type { ICellDataForSheetInterceptor, IRange, IScale, Worksheet } from '@univerjs/core';
+import type { ICellDataForSheetInterceptor, IRange, IScale } from '@univerjs/core';
 import { Range } from '@univerjs/core';
 import type { SpreadsheetSkeleton, UniverRenderingContext } from '@univerjs/engine-render';
 import { SheetExtension } from '@univerjs/engine-render';
+import { UnitAction } from '@univerjs/protocol';
 import type { ICellPermission } from '../../model/range-protection-render.model';
 import { base64 } from './protect-background-img';
 
-export const RANGE_PROTECTION_RENDER_EXTENSION_KEY = 'RANGE_PROTECTION_RENDER_EXTENSION_KEY';
-const EXTENSION_Z_INDEX = 44;
+export const RANGE_PROTECTION_CAN_VIEW_RENDER_EXTENSION_KEY = 'RANGE_PROTECTION_CAN_VIEW_RENDER_EXTENSION_KEY';
+export const RANGE_PROTECTION_CAN_NOT_VIEW_RENDER_EXTENSION_KEY = 'RANGE_PROTECTION_CAN_NOT_VIEW_RENDER_EXTENSION_KEY';
+
+const EXTENSION_CAN_VIEW_Z_INDEX = 25;
+const EXTENSION_CAN_NOT_VIEW_Z_INDEX = 80;
+
 export type IRangeProtectionRenderCellData = ICellDataForSheetInterceptor & { selectionProtection: ICellPermission[] };
 
-export class RangeProtectionRenderExtension extends SheetExtension {
-    override uKey = RANGE_PROTECTION_RENDER_EXTENSION_KEY;
-
-    override Z_INDEX = EXTENSION_Z_INDEX;
-    private _pattern: CanvasPattern | null;
-
-    private _img = new Image();
-
+export abstract class RangeProtectionRenderExtension extends SheetExtension {
+    abstract override uKey: string;
+    abstract override Z_INDEX: number;
+    protected _pattern: CanvasPattern | null = null;
+    protected _img = new Image();
     public renderCache = new Set<string>();
+
     constructor() {
         super();
         this._img.src = base64;
@@ -42,6 +45,8 @@ export class RangeProtectionRenderExtension extends SheetExtension {
     override clearCache(): void {
         this.renderCache.clear();
     }
+
+    protected abstract shouldRender(config: ICellPermission): boolean;
 
     override draw(
         ctx: UniverRenderingContext,
@@ -52,9 +57,8 @@ export class RangeProtectionRenderExtension extends SheetExtension {
         const { rowHeightAccumulation, columnWidthAccumulation, worksheet, dataMergeCache } =
             spreadsheetSkeleton;
         if (!worksheet) {
-            return false;
+            return;
         }
-        // 由于贴图渲染会将之前渲染的内容覆盖上去,这里无法做到增量渲染.
         ctx.save();
         if (!this._pattern) {
             this._pattern = ctx.createPattern(this._img, 'repeat');
@@ -68,39 +72,53 @@ export class RangeProtectionRenderExtension extends SheetExtension {
             if (!this._pattern) {
                 return;
             }
+
             ctx.fillStyle = this._pattern;
 
             selectionProtection.forEach((config) => {
                 if (!config.ruleId) {
                     return;
                 }
-                if (this.renderCache.has(config.ruleId)) {
-                    return;
+
+                if (this.shouldRender(config)) {
+                    if (this.renderCache.has(config.ruleId)) {
+                        return;
+                    }
+                    this.renderCache.add(config.ruleId);
+                    config.ranges!.forEach((range) => {
+                        const start = this.getCellIndex(range.startRow, range.startColumn, rowHeightAccumulation, columnWidthAccumulation, dataMergeCache);
+                        const end = this.getCellIndex(range.endRow, range.endColumn, rowHeightAccumulation, columnWidthAccumulation, dataMergeCache);
+                        ctx.fillRect(start.startX, start.startY, end.endX - start.startX, end.endY - start.startY);
+                    });
                 }
-                this.renderCache.add(config.ruleId);
-                config.ranges!.forEach((range) => {
-                    const start = this.getCellIndex(range.startRow, range.startColumn, rowHeightAccumulation, columnWidthAccumulation, dataMergeCache);
-                    const end = this.getCellIndex(range.endRow, range.endColumn, rowHeightAccumulation, columnWidthAccumulation, dataMergeCache);
-                    ctx.fillRect(start.startX, start.startY, end.endX - start.startX, end.endY - start.startY);
-                });
             });
         });
         ctx.restore();
     }
+}
 
-    isDirty(worksheet: Worksheet, ranges: IRange[]) {
-        return ranges.some((range) => {
-            let result = false;
-            Range.foreach(range, (row: number, col: number) => {
-                const { selectionProtection = [] } = worksheet.getCell(row, col) as IRangeProtectionRenderCellData;
-                for (const p of selectionProtection) {
-                    if (p.ruleId && !this.renderCache.has(p.ruleId)) {
-                        result = true;
-                        return;
-                    }
-                }
-            });
-            return result;
-        });
+export class RangeProtectionCanViewRenderExtension extends RangeProtectionRenderExtension {
+    override uKey = RANGE_PROTECTION_CAN_VIEW_RENDER_EXTENSION_KEY;
+    override Z_INDEX = EXTENSION_CAN_VIEW_Z_INDEX;
+
+    constructor() {
+        super();
+    }
+
+    protected override shouldRender(config: ICellPermission): boolean {
+        return config?.[UnitAction.View] !== false;
+    }
+}
+
+export class RangeProtectionCanNotViewRenderExtension extends RangeProtectionRenderExtension {
+    override uKey = RANGE_PROTECTION_CAN_NOT_VIEW_RENDER_EXTENSION_KEY;
+    override Z_INDEX = EXTENSION_CAN_NOT_VIEW_Z_INDEX;
+
+    constructor() {
+        super();
+    }
+
+    protected override shouldRender(config: ICellPermission): boolean {
+        return config?.[UnitAction.View] === false;
     }
 }
