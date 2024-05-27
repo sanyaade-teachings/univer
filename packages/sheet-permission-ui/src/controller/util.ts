@@ -16,7 +16,7 @@
 
 import type { Workbook } from '@univerjs/core';
 import { IPermissionService, IUniverInstanceService, Rectangle, UniverInstanceType, UserManagerService } from '@univerjs/core';
-import { RangeProtectionRuleModel, SelectionManagerService, WorkbookManageCollaboratorPermission, WorksheetProtectionRuleModel } from '@univerjs/sheets';
+import { RangeProtectionRuleModel, SelectionManagerService, WorkbookEditablePermission, WorkbookManageCollaboratorPermission, WorksheetProtectionRuleModel } from '@univerjs/sheets';
 import type { IAccessor } from '@wendellhu/redi';
 import { combineLatest, map, merge, of, startWith, switchMap } from 'rxjs';
 
@@ -373,7 +373,7 @@ export function getViewPermissionDisable$(accessor: IAccessor) {
             if (!sheet) {
                 return of(true);
             }
-            const permission$ = permissionService.getPermissionPoint$(new WorkbookManageCollaboratorPermission(unitId).id)?.pipe(map((e) => !!e.value)) ?? of(false);
+            const permission$ = permissionService.getPermissionPoint$(new WorkbookEditablePermission(unitId).id)?.pipe(map((e) => !!e.value)) ?? of(false);
             return permission$.pipe(
                 map((permission) => !permission)
             );
