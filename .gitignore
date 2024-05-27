@@ -112,3 +112,5 @@ storybook-static
 /playwright/.cache/
 
 *storybook.log
+examples/src/data/sheets/demo/testdata.json
+examples/src/data/sheets/demo/default-workbook-data-demo.ts
