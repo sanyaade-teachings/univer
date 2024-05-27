@@ -14,4 +14,4 @@
  * limitations under the License.
  */
 
-export { getAllWorkbookPermissionPoint, defaultWorkbookPermissionPoints } from './utils';
+export { getAllWorkbookPermissionPoint, defaultWorkbookPermissionPoints } from './util';

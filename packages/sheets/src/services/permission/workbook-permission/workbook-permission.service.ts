@@ -18,7 +18,7 @@ import { Inject } from '@wendellhu/redi';
 import type { Workbook } from '@univerjs/core';
 import { Disposable, IPermissionService, IUniverInstanceService, LifecycleStages, OnLifecycle, UniverInstanceType } from '@univerjs/core';
 
-import { getAllWorkbookPermissionPoint } from './utils';
+import { getAllWorkbookPermissionPoint } from './util';
 
 @OnLifecycle(LifecycleStages.Starting, WorkbookPermissionService)
 export class WorkbookPermissionService extends Disposable {
