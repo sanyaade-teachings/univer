@@ -20,7 +20,7 @@ import type { SpreadsheetSkeleton, UniverRenderingContext } from '@univerjs/engi
 import { SheetExtension } from '@univerjs/engine-render';
 import { UnitAction } from '@univerjs/protocol';
 import type { ICellPermission } from '../../model/range-protection-render.model';
-import { base64 } from './protect-background-img';
+import { base64 } from '../image/protect-background-img';
 
 export const RANGE_PROTECTION_CAN_VIEW_RENDER_EXTENSION_KEY = 'RANGE_PROTECTION_CAN_VIEW_RENDER_EXTENSION_KEY';
 export const RANGE_PROTECTION_CAN_NOT_VIEW_RENDER_EXTENSION_KEY = 'RANGE_PROTECTION_CAN_NOT_VIEW_RENDER_EXTENSION_KEY';
