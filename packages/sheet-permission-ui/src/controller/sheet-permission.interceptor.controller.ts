@@ -437,7 +437,7 @@ export class SheetPermissionInterceptorController extends RxDisposable {
         if (rangeTypes) {
             const rangeDisable = rangeTypes.some((F) => {
                 const cellInfo = (worksheet.getCell(row, col) as (ICellDataForSheetInterceptor & { selectionProtection: ICellPermission[] }))?.selectionProtection?.[0];
-                if (!cellInfo.ruleId) {
+                if (!cellInfo?.ruleId) {
                     return false;
                 }
                 const permissionId = this._rangeProtectionRuleModel.getRule(unitId, subUnitId, cellInfo.ruleId)?.permissionId;
@@ -499,7 +499,7 @@ export class SheetPermissionInterceptorController extends RxDisposable {
                     for (let row = range.startRow; row <= range.endRow; row++) {
                         for (let col = range.startColumn; col <= range.endColumn; col++) {
                             const cellInfo = (worksheet.getCell(row, col) as (ICellDataForSheetInterceptor & { selectionProtection: ICellPermission[] }))?.selectionProtection?.[0];
-                            if (!cellInfo.ruleId) {
+                            if (!cellInfo?.ruleId) {
                                 continue;
                             }
                             const permissionId = this._rangeProtectionRuleModel.getRule(unitId, subUnitId, cellInfo.ruleId)?.permissionId;

@@ -301,8 +301,7 @@ export type { FormatType } from './services/numfmt/type';
 export { getMoveRangeUndoRedoMutations } from './commands/commands/move-range.command';
 
 // permission
-export type { GetWorkbookPermission, GetWorksheetPermission } from './services/permission';
-export { defaultWorksheetPermissionPoint, getAllWorksheetPermissionPoint, getAllWorksheetPermissionPointByPointPanel, changeEnumToString } from './services/permission';
+export { defaultWorksheetPermissionPoint, getAllWorksheetPermissionPoint, getAllWorksheetPermissionPointByPointPanel } from './services/permission';
 export type { IWorksheetProtectionRule } from './services/permission/type';
 export { WorksheetProtectionRuleModel, WorksheetProtectionPointModel, WorksheetProtectionRenderService } from './services/permission/worksheet-permission';
 export { AddWorksheetProtectionMutation } from './commands/mutations/add-worksheet-protection.mutation';
