@@ -15,7 +15,7 @@
  */
 
 import type { IWorkbookData } from '@univerjs/core';
-import { AuthzIoMockService, ILogService, IUniverInstanceService, LocaleType, LogLevel, Plugin, Univer, UniverInstanceType } from '@univerjs/core';
+import { AuthzIoLocalService, IAuthzIoService, ILogService, IUniverInstanceService, LocaleType, LogLevel, Plugin, Univer, UniverInstanceType } from '@univerjs/core';
 import { LexerTreeBuilder } from '@univerjs/engine-formula';
 import { SelectionManagerService, SheetInterceptorService, WorkbookPermissionService, WorksheetPermissionService, WorksheetProtectionPointModel, WorksheetProtectionRuleModel } from '@univerjs/sheets';
 import type { Dependency } from '@wendellhu/redi';
@@ -80,7 +80,7 @@ export function createCommandTestBed(workbookData?: IWorkbookData, dependencies?
             injector.add([WorksheetPermissionService]);
             injector.add([WorksheetProtectionPointModel]);
             injector.add([WorkbookPermissionService]);
-            injector.add([AuthzIoMockService]);
+            injector.add([IAuthzIoService, { useClass: AuthzIoLocalService }]);
             injector.add([WorksheetProtectionRuleModel]);
 
             dependencies?.forEach((d) => injector.add(d));

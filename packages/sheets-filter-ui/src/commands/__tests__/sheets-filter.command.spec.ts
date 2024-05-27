@@ -15,7 +15,7 @@
  */
 
 import type { IRange, IWorkbookData } from '@univerjs/core';
-import { AuthzIoMockService, ICommandService, IUniverInstanceService, LocaleType, Plugin, RANGE_TYPE, RedoCommand, UndoCommand, Univer, UniverInstanceType } from '@univerjs/core';
+import { AuthzIoLocalService, IAuthzIoService, ICommandService, IUniverInstanceService, LocaleType, Plugin, RANGE_TYPE, RedoCommand, UndoCommand, Univer, UniverInstanceType } from '@univerjs/core';
 import type { ISetRangeValuesCommandParams } from '@univerjs/sheets';
 import { NORMAL_SELECTION_PLUGIN_NAME, RangeProtectionRuleModel, RefRangeService, SelectionManagerService, SetRangeValuesCommand, SetRangeValuesMutation, SheetInterceptorService, WorkbookPermissionService, WorksheetPermissionService, WorksheetProtectionPointModel, WorksheetProtectionRuleModel } from '@univerjs/sheets';
 import type { FilterModel, ISetSheetsFilterRangeMutationParams } from '@univerjs/sheets-filter';
@@ -97,7 +97,7 @@ function createFilterCommandTestBed() {
                 [WorksheetPermissionService],
                 [WorksheetProtectionPointModel],
                 [WorkbookPermissionService],
-                [AuthzIoMockService],
+                [IAuthzIoService, { useClass: AuthzIoLocalService }],
                 [WorksheetProtectionRuleModel],
                 [RangeProtectionRuleModel],
                 [IMessageService, { useClass: MockMessageService }],

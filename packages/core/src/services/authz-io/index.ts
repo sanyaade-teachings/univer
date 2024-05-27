@@ -14,5 +14,5 @@
  * limitations under the License.
  */
 
-export { AuthzIoMockService } from './authz-io';
+export { AuthzIoLocalService } from './authz-io';
 export { IAuthzIoService } from './type';

@@ -18,7 +18,8 @@
 
 import type { IWorkbookData, UnitModel, Workbook } from '@univerjs/core';
 import {
-    AuthzIoMockService,
+    AuthzIoLocalService,
+    IAuthzIoService,
     ILogService,
     IUniverInstanceService,
     LocaleService,
@@ -150,7 +151,7 @@ export function createFacadeTestBed(workbookData?: IWorkbookData, dependencies?:
             injector.add([WorksheetPermissionService]);
             injector.add([WorkbookPermissionService]);
             injector.add([WorksheetProtectionPointModel]);
-            injector.add([AuthzIoMockService]);
+            injector.add([IAuthzIoService, { useClass: AuthzIoLocalService }]);
             injector.add([WorksheetProtectionRuleModel]);
 
             SheetsConditionalFormattingPlugin.dependencyList.forEach((d) => {

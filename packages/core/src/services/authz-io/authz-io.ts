@@ -27,7 +27,7 @@ import type { IAuthzIoService } from './type';
 /**
  * Do not use the mock implementation in a production environment as it is a minimal version.
  */
-export class AuthzIoMockService implements IAuthzIoService {
+export class AuthzIoLocalService implements IAuthzIoService {
     private _permissionMap: Map<string, ICreateRequest_SelectRangeObject & { objectType: UnitObject }> = new Map([]);
 
     // private _sheetPermissionPointMap: Map<string, { action: UnitAction; allowed: boolean }[]> = new Map();

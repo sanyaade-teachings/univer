@@ -51,7 +51,7 @@ import type { Plugin, PluginCtor } from './services/plugin/plugin';
 import type { DependencyOverride } from './services/plugin/plugin-override';
 import { mergeOverrideWithDependencies } from './services/plugin/plugin-override';
 import { UserManagerService } from './services/user-manager/user-manager.service';
-import { AuthzIoMockService } from './services/authz-io';
+import { AuthzIoLocalService } from './services/authz-io';
 import { IAuthzIoService } from './services/authz-io/type';
 
 export class Univer {
@@ -185,7 +185,7 @@ function createUniverInjector(parentInjector?: Injector, override?: DependencyOv
         [IFloatingObjectManagerService, { useClass: FloatingObjectManagerService, lazy: true }],
         [IResourceManagerService, { useClass: ResourceManagerService, lazy: true }],
         [IResourceLoaderService, { useClass: ResourceLoaderService, lazy: true }],
-        [IAuthzIoService, { useClass: AuthzIoMockService, lazy: true }],
+        [IAuthzIoService, { useClass: AuthzIoLocalService, lazy: true }],
     ], override);
 
     return parentInjector ? parentInjector.createChild(dependencies) : new Injector(dependencies);
