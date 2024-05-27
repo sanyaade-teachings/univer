@@ -30,19 +30,27 @@ interface IHeaderColumnsConfig extends IColumnStyleCfg {
     columnStyle: IColumnStyleCfg;
     columnsCfg: IAColumnCfg[];
 }
-
+const DEFAULT_COLUMN_STYLE = {
+    fontSize: 13,
+    fontFamily: DEFAULT_FONTFACE_PLANE,
+    fontColor: '#000000',
+    backgroundColor: getColor([248, 249, 250]),
+    borderColor: getColor([217, 217, 217]),
+    textAlign: 'center',
+    textBaseline: 'middle',
+} as const;
 export class ColumnHeaderLayout extends SheetExtension {
     override uKey = UNIQUE_KEY;
     override Z_INDEX = 10;
-    columnsCfg: IAColumnCfg[];
+    columnsCfg: IAColumnCfg[] = [];
     columnStyle: Required<IColumnStyleCfg> = {
-        fontSize: 13,
-        fontFamily: DEFAULT_FONTFACE_PLANE,
-        fontColor: '#000000',
-        backgroundColor: getColor([248, 249, 250]),
-        borderColor: getColor([217, 217, 217]),
-        textAlign: 'center',
-        textBaseline: 'middle',
+        fontSize: DEFAULT_COLUMN_STYLE.fontSize,
+        fontFamily: DEFAULT_COLUMN_STYLE.fontFamily,
+        fontColor: DEFAULT_COLUMN_STYLE.fontColor,
+        backgroundColor: DEFAULT_COLUMN_STYLE.backgroundColor,
+        borderColor: DEFAULT_COLUMN_STYLE.borderColor,
+        textAlign: DEFAULT_COLUMN_STYLE.textAlign,
+        textBaseline: DEFAULT_COLUMN_STYLE.textBaseline,
     };
 
     constructor(cfg?: IHeaderColumnsConfig) {
@@ -58,34 +66,32 @@ export class ColumnHeaderLayout extends SheetExtension {
     }
 
     getCfgOfCurrentColumn(colIndex: number) {
-        let curColCfg;
+        let mergeWithSpecCfg;
+        let curColSpecCfg;
         const { columnsCfg } = this;
-        if (columnsCfg) {
+
+        if (columnsCfg[colIndex]) {
             if (typeof columnsCfg[colIndex] == 'string') {
-                columnsCfg[colIndex] = { text: columnsCfg[colIndex] } as IAColumnCfg; ;
+                columnsCfg[colIndex] = { text: columnsCfg[colIndex] } as IAColumnCfg;
             }
-            const aColumnCfg = columnsCfg[colIndex] as IColumnStyleCfg & { text: string };
-            curColCfg = { ...this.columnStyle, ...aColumnCfg };
+            curColSpecCfg = columnsCfg[colIndex] as IColumnStyleCfg & { text: string };
+            mergeWithSpecCfg = { ...this.columnStyle, ...curColSpecCfg };
         } else {
-            curColCfg = { text: numberToABC(colIndex) };
+            mergeWithSpecCfg = { ...this.columnStyle, text: numberToABC(colIndex) };
         }
-        return curColCfg as IAColumnCfgObj;
+        const specStyle = Object.keys(curColSpecCfg || {}).length > 1; // if cfg have more keys than 'text', means there would be special style config for this column.
+        return [mergeWithSpecCfg, specStyle] as [Required<IAColumnCfgObj>, boolean];
     }
 
-    setDefaultCtxStyle(ctx: UniverRenderingContext, columnTotalWidth: number, columnHeaderHeight: number) {
-        const columnStyle = this.columnStyle;
-        ctx.fillStyle = columnStyle.backgroundColor!;
-        ctx.fillRectByPrecision(0, 0, columnTotalWidth, columnHeaderHeight);
-        ctx.textAlign = columnStyle.textAlign;
-        ctx.textBaseline = columnStyle.textBaseline;
-        ctx.fillStyle = columnStyle.fontColor;
-        ctx.strokeStyle = columnStyle.borderColor;
-        ctx.setLineWidthByPrecision(1);
-        ctx.translateWithPrecisionRatio(FIX_ONE_PIXEL_BLUR_OFFSET, FIX_ONE_PIXEL_BLUR_OFFSET);
-        ctx.font = `${columnStyle.fontSize}px ${DEFAULT_FONTFACE_PLANE}`;
-        ctx.beginPath();
+    setStyleToCtx(ctx: UniverRenderingContext, columnStyle: IColumnStyleCfg) {
+        if (columnStyle.textAlign) ctx.textAlign = columnStyle.textAlign;
+        if (columnStyle.textBaseline) ctx.textBaseline = columnStyle.textBaseline;
+        if (columnStyle.fontColor) ctx.fillStyle = columnStyle.fontColor;
+        if (columnStyle.borderColor) ctx.strokeStyle = columnStyle.borderColor;
+        if (columnStyle.fontSize) ctx.font = `${columnStyle.fontSize}px ${DEFAULT_FONTFACE_PLANE}`;
     }
 
+    // eslint-disable-next-line max-lines-per-function
     override draw(ctx: UniverRenderingContext, parentScale: IScale, spreadsheetSkeleton: SpreadsheetSkeleton) {
         const { rowColumnSegment, columnHeaderHeight = 0 } = spreadsheetSkeleton;
         const { startColumn, endColumn } = rowColumnSegment;
@@ -106,8 +112,16 @@ export class ColumnHeaderLayout extends SheetExtension {
         }
 
         const scale = this._getScale(parentScale);
-        this.setDefaultCtxStyle(ctx, columnTotalWidth, columnHeaderHeight);
+        this.setStyleToCtx(ctx, this.columnStyle);
 
+        // background
+        ctx.save();
+        ctx.fillStyle = this.columnStyle.backgroundColor;
+        ctx.fillRectByPrecision(0, 0, columnTotalWidth, columnHeaderHeight);
+        ctx.restore();
+
+        ctx.setLineWidthByPrecision(1);
+        ctx.translateWithPrecisionRatio(FIX_ONE_PIXEL_BLUR_OFFSET, FIX_ONE_PIXEL_BLUR_OFFSET);
         let preColumnPosition = 0;
         for (let c = startColumn - 1; c <= endColumn; c++) {
             if (c < 0 || c > columnWidthAccumulation.length - 1) {
@@ -116,18 +130,26 @@ export class ColumnHeaderLayout extends SheetExtension {
 
             const columnEndPosition = columnWidthAccumulation[c];
             if (preColumnPosition === columnEndPosition) {
-                // Skip hidden columns
-                continue;
+                continue;// Skip hidden columns
             }
-            const cellBound = { left: preColumnPosition, top: 0, right: columnEndPosition, bottom: columnHeaderHeight, height: columnHeaderHeight };
+            const cellBound = { left: preColumnPosition, top: 0, right: columnEndPosition, bottom: columnHeaderHeight, width: columnEndPosition - preColumnPosition, height: columnHeaderHeight };
+            const [curColumnCfg, specStyle] = this.getCfgOfCurrentColumn(c);
+
+            // background
+            if (specStyle && curColumnCfg.backgroundColor) {
+                ctx.save();
+                ctx.fillStyle = curColumnCfg.backgroundColor;
+                ctx.fillRectByPrecision(cellBound.left, cellBound.top, cellBound.width, cellBound.height);
+                ctx.restore();
+            }
 
             // vertical line border
+            ctx.beginPath();
             ctx.moveToByPrecision(cellBound.right, 0);
             ctx.lineToByPrecision(cellBound.right, cellBound.height);
-
-            const curColumnCfg = this.getCfgOfCurrentColumn(c);
+            ctx.stroke();
             // column header text
-            const centerXCellRect = (() => {
+            const textX = (() => {
                 switch (curColumnCfg.textAlign) {
                     case 'center':
                         return cellBound.left + (cellBound.right - cellBound.left) / 2;
@@ -141,14 +163,16 @@ export class ColumnHeaderLayout extends SheetExtension {
             })();
             const middleYCellRect = cellBound.height / 2 + MIDDLE_CELL_POS_MAGIC_NUMBER; // Magic number 1, because the vertical alignment appears to be off by 1 pixel
 
-            const needSaveState = curColumnCfg.textAlign !== 'center';
-            if (needSaveState) {
+            if (specStyle) {
                 ctx.save();
+                ctx.beginPath();
+                this.setStyleToCtx(ctx, curColumnCfg);
+                ctx.rectByPrecision(cellBound.left, cellBound.top, cellBound.width, cellBound.height);
+                ctx.clip();
             }
 
-            const str = curColumnCfg.text;
-            ctx.fillText(str, centerXCellRect, middleYCellRect);
-            if (needSaveState) {
+            ctx.fillText(curColumnCfg.text, textX, middleYCellRect);
+            if (specStyle) {
                 ctx.restore();
             }
 
@@ -157,6 +181,7 @@ export class ColumnHeaderLayout extends SheetExtension {
 
         // border bottom line
         const columnHeaderHeightFix = columnHeaderHeight - 0.5 / scale;
+        ctx.beginPath();
         ctx.moveToByPrecision(0, columnHeaderHeightFix);
         ctx.lineToByPrecision(columnTotalWidth, columnHeaderHeightFix);
         ctx.stroke();

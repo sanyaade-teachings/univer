@@ -108,14 +108,14 @@ export interface IPaintForScrolling {
     scaleY: number;
 }
 export interface IColumnStyleCfg {
-    fontFamily?: string;
-    fontColor?: string;
-    fontSize?: number;
-    backgroundColor?: string;
-    borderColor?: string;
-    textAlign?: CanvasTextAlign;
-    textBaseline?: CanvasTextBaseline;
+    fontFamily: string;
+    fontColor: string;
+    fontSize: number;
+    borderColor: string;
+    textAlign: CanvasTextAlign;
+    textBaseline: CanvasTextBaseline;
+    backgroundColor: string;
 }
 
-export type IAColumnCfgObj = IColumnStyleCfg & { text: string };
-export type IAColumnCfg = string | IColumnStyleCfg & { text: string };
+export type IAColumnCfgObj = IColumnStyleCfg & { text: string; backgroundColor: string };
+export type IAColumnCfg = string | IAColumnCfgObj;
