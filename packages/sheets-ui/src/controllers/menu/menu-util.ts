@@ -19,7 +19,7 @@ import { IPermissionService, IUniverInstanceService, Rectangle, Tools, UniverIns
 import { UnitAction } from '@univerjs/protocol';
 
 import type { ICellPermission } from '@univerjs/sheets';
-import { RangeProtectionRuleModel, SelectionManagerService, WorkbookEditablePermission, WorkbookManageCollaboratorPermission, WorkbookPermissionService, WorksheetProtectionRuleModel } from '@univerjs/sheets';
+import { RangeProtectionRuleModel, SelectionManagerService, WorkbookEditablePermission, WorkbookManageCollaboratorPermission, WorksheetProtectionRuleModel } from '@univerjs/sheets';
 import type { IAccessor } from '@wendellhu/redi';
 import type { Observable } from 'rxjs';
 import { combineLatest, map, of, switchMap } from 'rxjs';
@@ -375,7 +375,6 @@ export function getWorkbookPermissionDisable$(accessor: IAccessor) {
     const workbook = univerInstanceService.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET)!;
     const worksheetRuleModel = accessor.get(WorksheetProtectionRuleModel);
     const selectionRuleModel = accessor.get(RangeProtectionRuleModel);
-    const workbookPermissionService = accessor.get(WorkbookPermissionService);
     const permissionService = accessor.get(IPermissionService);
     const unitId = workbook.getUnitId();
 

@@ -14,43 +14,21 @@
  * limitations under the License.
  */
 
-import type { IPermissionParam, IPermissionPoint, Workbook, Worksheet } from '@univerjs/core';
+import type { Workbook, Worksheet } from '@univerjs/core';
 import { IPermissionService, IResourceManagerService, IUniverInstanceService, LifecycleStages, OnLifecycle, RxDisposable, UniverInstanceType } from '@univerjs/core';
 import { Inject, Injector } from '@wendellhu/redi';
-import { map, takeUntil } from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
 
 // import type { UnitAction, UnitObject } from '@univerjs/protocol';
 import { UnitAction, UniverType } from '@univerjs/protocol';
 import type { ISheetFontRenderExtension } from '@univerjs/engine-render';
 import {
-    WorkbookCopyPermission,
-    WorkbookEditablePermission,
-    WorkbookManageCollaboratorPermission,
-    WorkbookViewPermission,
-    WorksheetCopyPermission,
-    WorksheetDeleteColumnPermission,
-    WorksheetDeleteRowPermission,
-    WorksheetEditExtraObjectPermission,
     WorksheetEditPermission,
-    WorksheetFilterPermission,
-    WorksheetInsertColumnPermission,
-    WorksheetInsertHyperlinkPermission,
-    WorksheetInsertRowPermission,
-    WorksheetManageCollaboratorPermission,
-    WorksheetPivotTablePermission,
-    WorksheetSelectProtectedCellsPermission,
-    WorksheetSelectUnProtectedCellsPermission,
-    WorksheetSetCellStylePermission,
-    WorksheetSetCellValuePermission,
-    WorksheetSetColumnStylePermission,
-    WorksheetSetRowStylePermission,
-    WorksheetSortPermission,
     WorksheetViewPermission,
 } from '../permission-point';
-import type { IObjectModel, IObjectPointModel, IWorksheetPermissionServiceMethods } from '../type';
+import type { IObjectModel, IObjectPointModel } from '../type';
 import { SheetInterceptorService } from '../../sheet-interceptor/sheet-interceptor.service';
 import { INTERCEPTOR_POINT } from '../../sheet-interceptor/interceptor-const';
-import { changeEnumToString } from '../util';
 import { WorksheetProtectionRuleModel } from './worksheet-permission-rule.model';
 import { getAllWorksheetPermissionPoint, getAllWorksheetPermissionPointByPointPanel } from './utils';
 import type { IWorksheetProtectionRenderCellData } from './type';
@@ -60,10 +38,7 @@ export const RULE_MODEL_PLUGIN_NAME = 'SHEET_WORKSHEET_PROTECTION_PLUGIN';
 export const POINT_MODEL_PLUGIN_NAME = 'SHEET_WORKSHEET_PROTECTION_POINT_PLUGIN';
 
 @OnLifecycle(LifecycleStages.Starting, WorksheetPermissionService)
-export class WorksheetPermissionService extends RxDisposable implements IWorksheetPermissionServiceMethods {
-    // eslint-disable-next-line ts/no-explicit-any
-    [key: string]: any;
-
+export class WorksheetPermissionService extends RxDisposable {
     constructor(
         @Inject(IPermissionService) private _permissionService: IPermissionService,
         @Inject(IUniverInstanceService) private _univerInstanceService: IUniverInstanceService,
@@ -75,7 +50,6 @@ export class WorksheetPermissionService extends RxDisposable implements IWorkshe
     ) {
         super();
         this._init();
-        this._initializePermissions();
         this._initRuleChange();
         this._initRuleSnapshot();
         this._initPointSnapshot();
@@ -122,194 +96,6 @@ export class WorksheetPermissionService extends RxDisposable implements IWorkshe
                     this._permissionService.deletePermissionPoint(instance.id);
                 });
             });
-        });
-    }
-
-    private _createPermissionMethods<T extends IPermissionPoint>(PermissionClassGroup: { WorkbookPermissionClass: new (unitId: string) => T; WorksheetPermissionClass: new (unitId: string, subUnitId: string) => T }) {
-        return {
-            get$: (permissionParams: IPermissionParam) => {
-                const { unitId, subUnitId } = permissionParams;
-                const { WorkbookPermissionClass, WorksheetPermissionClass } = PermissionClassGroup;
-                const unitPermissionInstance = new WorkbookPermissionClass(unitId);
-                const subUnitPermissionInstance = new WorksheetPermissionClass(unitId, subUnitId);
-                const workbookPermission = this._permissionService.getPermissionPoint$(unitPermissionInstance.id);
-                const sheetPermission = this._permissionService.getPermissionPoint$(subUnitPermissionInstance.id);
-                if (!sheetPermission || !workbookPermission) {
-                    throw (new Error('Permission initialization error.'));
-                }
-                return this._permissionService.composePermission$([unitPermissionInstance.id, subUnitPermissionInstance.id]).pipe(map((list) => {
-                    return list.every((item) => item.value === true);
-                }));
-            },
-            get: (permissionParams: IPermissionParam) => {
-                const { unitId, subUnitId } = permissionParams;
-                const { WorkbookPermissionClass, WorksheetPermissionClass } = PermissionClassGroup;
-                const workbookPermissionInstance = new WorkbookPermissionClass(unitId);
-                const worksheetPermissionInstance = new WorksheetPermissionClass(unitId, subUnitId);
-                const workbookPermission = this._permissionService.getPermissionPoint(workbookPermissionInstance.id);
-                const sheetPermission = this._permissionService.getPermissionPoint(worksheetPermissionInstance.id);
-                if (!sheetPermission || !workbookPermission) {
-                    return false;
-                }
-                return workbookPermission.value && sheetPermission.value;
-            },
-            set: (value: boolean, unitId?: string, subUnitId?: string) => {
-                const workbook = this._univerInstanceService.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET)!;
-                if (!workbook) return;
-                const _unitId = unitId || workbook.getUnitId();
-                const sheet = workbook.getActiveSheet();
-                const _subUnitId = subUnitId || sheet.getSheetId();
-                const { WorksheetPermissionClass } = PermissionClassGroup;
-                const sheetPermission = new WorksheetPermissionClass(_unitId, _subUnitId);
-                this._permissionService.updatePermissionPoint(sheetPermission.id, value);
-            },
-        };
-    }
-
-    // eslint-disable-next-line max-lines-per-function
-    private _initializePermissions() {
-        const permissions = [
-            {
-                type: UnitAction.Copy,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookCopyPermission,
-                    WorksheetPermissionClass: WorksheetCopyPermission,
-                },
-            },
-            {
-                type: UnitAction.SelectProtectedCells,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookViewPermission,
-                    WorksheetPermissionClass: WorksheetSelectProtectedCellsPermission,
-                },
-            },
-            {
-                type: UnitAction.SelectUnProtectedCells,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookViewPermission,
-                    WorksheetPermissionClass: WorksheetSelectUnProtectedCellsPermission,
-                },
-            },
-            {
-                type: UnitAction.SetCellStyle,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetSetCellStylePermission,
-                },
-            },
-            {
-                type: UnitAction.SetCellValue,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetSetCellValuePermission,
-                },
-            },
-            {
-                type: UnitAction.View,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookViewPermission,
-                    WorksheetPermissionClass: WorksheetViewPermission,
-                },
-            },
-            {
-                type: UnitAction.SetRowStyle,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetSetRowStylePermission,
-                },
-            },
-            {
-                type: UnitAction.SetColumnStyle,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetSetColumnStylePermission,
-                },
-            },
-            {
-                type: UnitAction.InsertRow,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetInsertRowPermission,
-                },
-            },
-            {
-                type: UnitAction.InsertColumn,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetInsertColumnPermission,
-                },
-            },
-            {
-                type: UnitAction.InsertHyperlink,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetInsertHyperlinkPermission,
-                },
-            },
-            {
-                type: UnitAction.DeleteRow,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetDeleteRowPermission,
-                },
-            },
-            {
-                type: UnitAction.DeleteColumn,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetDeleteColumnPermission,
-                },
-            },
-            {
-                type: UnitAction.Sort,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetSortPermission,
-                },
-            },
-            {
-                type: UnitAction.Filter,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetFilterPermission,
-                },
-            },
-            {
-                type: UnitAction.PivotTable,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetPivotTablePermission,
-                },
-            },
-            {
-                type: UnitAction.EditExtraObject,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetEditExtraObjectPermission,
-                },
-            },
-            {
-                type: UnitAction.ManageCollaborator,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookManageCollaboratorPermission,
-                    WorksheetPermissionClass: WorksheetManageCollaboratorPermission,
-                },
-            },
-            {
-                type: UnitAction.Edit,
-                classGroup: {
-                    WorkbookPermissionClass: WorkbookEditablePermission,
-                    WorksheetPermissionClass: WorksheetEditPermission,
-                },
-            },
-        ];
-
-        permissions.forEach(({ type, classGroup }) => {
-            const { get$, get, set } = this._createPermissionMethods(classGroup as { WorkbookPermissionClass: new (unitId: string) => IPermissionPoint; WorksheetPermissionClass: new (unitId: string, subUnitId: string) => IPermissionPoint });
-            const actionString = changeEnumToString(type);
-            this[`get${actionString}Permission$`] = get$;
-            this[`get${actionString}Permission`] = get;
-            this[`set${actionString}Permission`] = set;
         });
     }
 
@@ -422,10 +208,10 @@ export class WorksheetPermissionService extends RxDisposable implements IWorkshe
                 const worksheetRule = this._worksheetProtectionRuleModel.getRule(unitId, subUnitId);
                 if (worksheetRule?.permissionId && worksheetRule.name) {
                     const selectionProtection = [{
-                        View: this._permissionService.getPermissionPoint(new WorksheetViewPermission(unitId, subUnitId).id)?.value ?? false,
-                        Edit: this._permissionService.getPermissionPoint(new WorksheetEditPermission(unitId, subUnitId).id)?.value ?? false,
+                        [UnitAction.View]: this._permissionService.getPermissionPoint(new WorksheetViewPermission(unitId, subUnitId).id)?.value ?? false,
+                        [UnitAction.Edit]: this._permissionService.getPermissionPoint(new WorksheetEditPermission(unitId, subUnitId).id)?.value ?? false,
                     }];
-                    const isSkipFontRender = !selectionProtection[0].View;
+                    const isSkipFontRender = !selectionProtection[0]?.[UnitAction.View];
                     const _cellData: IWorksheetProtectionRenderCellData & ISheetFontRenderExtension = { ...cell, hasWorksheetRule: true, selectionProtection };
                     if (isSkipFontRender) {
                         if (!_cellData.fontRenderExtension) {

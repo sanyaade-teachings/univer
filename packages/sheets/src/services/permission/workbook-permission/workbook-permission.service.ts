@@ -15,43 +15,19 @@
  */
 
 import { Inject } from '@wendellhu/redi';
-import type { IPermissionPoint, Workbook } from '@univerjs/core';
+import type { Workbook } from '@univerjs/core';
 import { Disposable, IPermissionService, IUniverInstanceService, LifecycleStages, OnLifecycle, UniverInstanceType } from '@univerjs/core';
-import { map, of } from 'rxjs';
-import { UnitAction } from '@univerjs/protocol';
-import {
-    WorkbookCommentPermission,
-    WorkbookCopyPermission,
-    WorkbookCreateSheetPermission,
-    WorkbookDeleteSheetPermission,
-    WorkbookDuplicatePermission,
-    WorkbookEditablePermission,
-    WorkbookExportPermission,
-    WorkbookHideSheetPermission,
-    WorkbookHistoryPermission,
-    WorkbookManageCollaboratorPermission,
-    WorkbookMoveSheetPermission,
-    WorkbookPrintPermission,
-    WorkbookRenameSheetPermission,
-    WorkbookSharePermission,
-    WorkbookViewPermission,
-} from '../permission-point';
-import type { IWorkbookPermissionServiceMethods } from '../type';
-import { changeEnumToString } from '../util';
+
 import { getAllWorkbookPermissionPoint } from './utils';
 
 @OnLifecycle(LifecycleStages.Starting, WorkbookPermissionService)
-export class WorkbookPermissionService extends Disposable implements IWorkbookPermissionServiceMethods {
-    // eslint-disable-next-line ts/no-explicit-any
-    [key: string]: any;
-
+export class WorkbookPermissionService extends Disposable {
     constructor(
         @Inject(IPermissionService) private _permissionService: IPermissionService,
         @Inject(IUniverInstanceService) private _univerInstanceService: IUniverInstanceService
     ) {
         super();
         this._init();
-        this._initializePermissions();
     }
 
     private _init() {
@@ -78,59 +54,5 @@ export class WorkbookPermissionService extends Disposable implements IWorkbookPe
                 this._permissionService.deletePermissionPoint(instance.id);
             });
         }));
-    }
-
-    private _createPermissionMethods<T extends IPermissionPoint>(PermissionClass: new (unitId: string) => T) {
-        return {
-            get$: (unitId: string) => {
-                const permissionInstance = new PermissionClass(unitId);
-                const permission = this._permissionService.getPermissionPoint(permissionInstance.id);
-                if (!permission) {
-                    return of(false);
-                }
-                return this._permissionService.composePermission$([permissionInstance.id]).pipe(map((list) => {
-                    return list.every((item) => item.value === true);
-                }));
-            },
-            get: (unitId: string) => {
-                if (!unitId) return false;
-                const permissionInstance = new PermissionClass(unitId);
-                const permission = this._permissionService.getPermissionPoint(permissionInstance.id);
-                return permission?.value ?? false;
-            },
-            set: (unitId: string, value: boolean) => {
-                const permissionInstance = new PermissionClass(unitId);
-                this._permissionService.updatePermissionPoint(permissionInstance.id, value);
-            },
-        };
-    }
-
-    private _initializePermissions() {
-        const permissions = [
-            { type: UnitAction.Edit, class: WorkbookEditablePermission },
-            { type: UnitAction.Print, class: WorkbookPrintPermission },
-            { type: UnitAction.Duplicate, class: WorkbookDuplicatePermission },
-            { type: UnitAction.Export, class: WorkbookExportPermission },
-            { type: UnitAction.MoveSheet, class: WorkbookMoveSheetPermission },
-            { type: UnitAction.DeleteSheet, class: WorkbookDeleteSheetPermission },
-            { type: UnitAction.HideSheet, class: WorkbookHideSheetPermission },
-            { type: UnitAction.RenameSheet, class: WorkbookRenameSheetPermission },
-            { type: UnitAction.CreateSheet, class: WorkbookCreateSheetPermission },
-            { type: UnitAction.History, class: WorkbookHistoryPermission },
-            { type: UnitAction.View, class: WorkbookViewPermission },
-            { type: UnitAction.Share, class: WorkbookSharePermission },
-            { type: UnitAction.Comment, class: WorkbookCommentPermission },
-            { type: UnitAction.Copy, class: WorkbookCopyPermission },
-            { type: UnitAction.CopySheet, class: WorkbookCopyPermission },
-            { type: UnitAction.ManageCollaborator, class: WorkbookManageCollaboratorPermission },
-        ];
-
-        permissions.forEach(({ type, class: PermissionClass }) => {
-            const { get$, get, set } = this._createPermissionMethods(PermissionClass);
-            const actionString = changeEnumToString(type);
-            this[`get${actionString}Permission$`] = get$;
-            this[`get${actionString}Permission`] = get;
-            this[`set${actionString}Permission`] = set;
-        });
     }
 }

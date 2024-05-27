@@ -16,7 +16,6 @@
 
 import type { ICellDataForSheetInterceptor } from '@univerjs/core';
 import { UnitAction } from '@univerjs/protocol';
-import type { ICellPermission } from '../../../model/range-protection-render.model';
 
 export const defaultSheetActions = [
     UnitAction.Edit,
@@ -24,5 +23,5 @@ export const defaultSheetActions = [
 ];
 
 export type IWorksheetProtectionRenderCellData = ICellDataForSheetInterceptor & { hasWorksheetRule: boolean } & {
-    selectionProtection: ICellPermission[];
+    selectionProtection: { [UnitAction.View]: boolean; [UnitAction.Edit]: boolean }[];
 };

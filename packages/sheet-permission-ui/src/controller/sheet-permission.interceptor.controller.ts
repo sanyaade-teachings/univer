@@ -17,10 +17,10 @@
 /* eslint-disable complexity */
 /* eslint-disable max-lines-per-function */
 
-import type { ICellData, ICellDataForSheetInterceptor, ICommandInfo, IObjectMatrixPrimitiveType, IPermissionTypesInRunTime, IRange, ISheetDataValidationRule, Nullable, Workbook } from '@univerjs/core';
+import type { ICellData, ICellDataForSheetInterceptor, ICommandInfo, IObjectMatrixPrimitiveType, IPermissionTypes, IRange, ISheetDataValidationRule, Nullable, Workbook } from '@univerjs/core';
 import { DisposableCollection, ICommandService, IPermissionService, IUniverInstanceService, LifecycleStages, LocaleService, ObjectMatrix, OnLifecycle, Rectangle, RxDisposable, UniverInstanceType } from '@univerjs/core';
-import type { GetWorksheetPermission, IMoveColsCommandParams, IMoveRangeCommandParams, IMoveRowsCommandParams, ISetRangeValuesCommandParams, ISetSpecificColsVisibleCommandParams, ISetSpecificRowsVisibleCommandParams, ISetWorksheetNameMutationParams } from '@univerjs/sheets';
-import { changeEnumToString, ClearSelectionContentCommand, DeleteRangeMoveLeftCommand, DeleteRangeMoveUpCommand, DeltaColumnWidthCommand, DeltaRowHeightCommand, InsertRangeMoveDownCommand, InsertRangeMoveRightCommand, MoveColsCommand, MoveRangeCommand, MoveRowsCommand, RangeProtectionRuleModel, SelectionManagerService, SetBackgroundColorCommand, SetColWidthCommand, SetRangeValuesCommand, SetRowHeightCommand, SetSelectedColsVisibleCommand, SetSelectedRowsVisibleCommand, SetSpecificColsVisibleCommand, SetSpecificRowsVisibleCommand, SetWorksheetNameCommand, SetWorksheetNameMutation, SetWorksheetOrderCommand, SetWorksheetRowIsAutoHeightCommand, SetWorksheetShowCommand, WorkbookEditablePermission, WorkbookManageCollaboratorPermission, WorkbookPermissionService, WorksheetEditPermission, WorksheetPermissionService, WorksheetProtectionRuleModel, WorksheetSetColumnStylePermission, WorksheetSetRowStylePermission } from '@univerjs/sheets';
+import type { IMoveColsCommandParams, IMoveRangeCommandParams, IMoveRowsCommandParams, ISetRangeValuesCommandParams, ISetSpecificColsVisibleCommandParams, ISetSpecificRowsVisibleCommandParams, ISetWorksheetNameMutationParams } from '@univerjs/sheets';
+import { ClearSelectionContentCommand, DeleteRangeMoveLeftCommand, DeleteRangeMoveUpCommand, DeltaColumnWidthCommand, DeltaRowHeightCommand, InsertRangeMoveDownCommand, InsertRangeMoveRightCommand, MoveColsCommand, MoveRangeCommand, MoveRowsCommand, RangeProtectionPermissionEditPoint, RangeProtectionPermissionViewPoint, RangeProtectionRuleModel, SelectionManagerService, SetBackgroundColorCommand, SetColWidthCommand, SetRangeValuesCommand, SetRowHeightCommand, SetSelectedColsVisibleCommand, SetSelectedRowsVisibleCommand, SetSpecificColsVisibleCommand, SetSpecificRowsVisibleCommand, SetWorksheetNameCommand, SetWorksheetNameMutation, SetWorksheetOrderCommand, SetWorksheetRowIsAutoHeightCommand, SetWorksheetShowCommand, WorkbookCopyPermission, WorkbookEditablePermission, WorkbookManageCollaboratorPermission, WorkbookPermissionService, WorksheetCopyPermission, WorksheetEditPermission, WorksheetFilterPermission, WorksheetPermissionService, WorksheetProtectionRuleModel, WorksheetSetCellStylePermission, WorksheetSetCellValuePermission, WorksheetSetColumnStylePermission, WorksheetSetRowStylePermission } from '@univerjs/sheets';
 import { Inject } from '@wendellhu/redi';
 import { IDialogService } from '@univerjs/ui';
 
@@ -111,32 +111,32 @@ export class SheetPermissionInterceptorController extends RxDisposable {
             case InsertCommand.id:
             case SetCellEditVisibleOperation.id:
                 permission = this._permissionCheckWithoutRange({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.SetCellValue, UnitAction.Edit],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetSetCellValuePermission, WorksheetEditPermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.editErr');
                 break;
             case SetRangeValuesCommand.id:
                 permission = this._permissionCheckBySetRangeValue({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.SetCellValue, UnitAction.Edit],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetSetCellValuePermission, WorksheetEditPermission],
                 }, params as ISetRangeValuesCommandParams);
                 break;
             case ClearSelectionContentCommand.id:
                 permission = this._permissionCheckWithRanges({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.SetCellValue, UnitAction.Edit],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetSetCellValuePermission, WorksheetEditPermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.editErr');
                 break;
             case SheetPasteColWidthCommand.id:
                 permission = this._permissionCheckWithoutRange({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.Edit, UnitAction.SetColumnStyle],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetEditPermission, WorksheetSetColumnStylePermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.pasteErr');
                 break;
@@ -146,9 +146,9 @@ export class SheetPermissionInterceptorController extends RxDisposable {
                 break;
             case ApplyFormatPainterCommand.id:
                 permission = this._permissionCheckWithRanges({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.Edit, UnitAction.SetCellValue, UnitAction.SetCellStyle],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetEditPermission, WorksheetSetCellValuePermission, WorksheetSetCellStylePermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.commonErr');
                 break;
@@ -158,27 +158,27 @@ export class SheetPermissionInterceptorController extends RxDisposable {
             case SetRangeUnderlineCommand.id:
             case SetRangeStrickThroughCommand.id:
                 permission = this._permissionCheckWithRanges({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.SetCellStyle, UnitAction.Edit],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetSetCellStylePermission, WorksheetEditPermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.setStyleErr');
                 break;
             case SheetCopyCommand.id:
             case SheetCutCommand.id:
                 permission = this._permissionCheckWithRanges({
-                    workbookTypes: [UnitAction.Copy],
-                    rangeTypes: [UnitAction.View],
-                    worksheetTypes: [UnitAction.Copy],
+                    workbookTypes: [WorkbookCopyPermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetCopyPermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.copyErr');
                 break;
             case DeltaColumnWidthCommand.id:
             case SetColWidthCommand.id:
                 permission = this._permissionCheckWithoutRange({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.SetRowStyle, UnitAction.Edit],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetSetRowStylePermission, WorksheetEditPermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.setRowColStyleErr');
                 break;
@@ -187,9 +187,9 @@ export class SheetPermissionInterceptorController extends RxDisposable {
             case SetRowHeightCommand.id:
             case SetWorksheetRowIsAutoHeightCommand.id:
                 permission = this._permissionCheckWithoutRange({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.SetRowStyle, UnitAction.Edit],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetSetRowStylePermission, WorksheetEditPermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.setRowColStyleErr');
                 break;
@@ -211,9 +211,9 @@ export class SheetPermissionInterceptorController extends RxDisposable {
 
             case SmartToggleSheetsFilterCommandId:
                 permission = this._permissionCheckWithoutRange({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.View],
-                    worksheetTypes: [UnitAction.Filter, UnitAction.Edit],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionViewPoint],
+                    worksheetTypes: [WorksheetFilterPermission, WorksheetEditPermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.filterErr');
                 break;
@@ -233,59 +233,59 @@ export class SheetPermissionInterceptorController extends RxDisposable {
 
             case SetSpecificColsVisibleCommand.id:
                 permission = this._permissionCheckWithRanges({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.Edit, UnitAction.SetColumnStyle],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetEditPermission, WorksheetSetColumnStylePermission],
                 }, (params as ISetSpecificColsVisibleCommandParams).ranges);
                 errorMsg = this._localService.t('permission.dialog.setRowColStyleErr');
                 break;
             case SetSpecificRowsVisibleCommand.id:
                 permission = this._permissionCheckWithRanges({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.Edit, UnitAction.SetRowStyle],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetEditPermission, WorksheetSetRowStylePermission],
                 }, (params as ISetSpecificRowsVisibleCommandParams).ranges);
                 errorMsg = this._localService.t('permission.dialog.setRowColStyleErr');
                 break;
             case SetSelectedColsVisibleCommand.id:
                 permission = this._permissionCheckWithRanges({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.Edit, UnitAction.SetColumnStyle],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetEditPermission, WorksheetSetColumnStylePermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.setRowColStyleErr');
                 break;
             case SetSelectedRowsVisibleCommand.id:
                 permission = this._permissionCheckWithRanges({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.Edit, UnitAction.SetRowStyle],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetEditPermission, WorksheetSetRowStylePermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.setRowColStyleErr');
                 break;
 
             case AddSheetDataValidationCommand.id:
                 permission = this._permissionCheckWithRanges({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.Edit, UnitAction.SetCellStyle],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetEditPermission, WorksheetSetCellStylePermission],
                 });
                 errorMsg = this._localService.t('permission.dialog.setStyleErr');
                 break;
             case UpdateSheetDataValidationRangeCommand.id:
                 permission = this._permissionCheckWithRanges({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.Edit, UnitAction.SetCellStyle],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetEditPermission, WorksheetSetCellStylePermission],
                 }, (params as IUpdateSheetDataValidationRangeCommandParams).ranges);
                 errorMsg = this._localService.t('permission.dialog.setStyleErr');
                 break;
 
             case AddCfCommand.id:
                 permission = this._permissionCheckWithRanges({
-                    workbookTypes: [UnitAction.Edit],
-                    rangeTypes: [UnitAction.Edit],
-                    worksheetTypes: [UnitAction.Edit, UnitAction.SetCellStyle],
+                    workbookTypes: [WorkbookEditablePermission],
+                    rangeTypes: [RangeProtectionPermissionEditPoint],
+                    worksheetTypes: [WorksheetEditPermission, WorksheetSetCellStylePermission],
                 }, (params as IAddCfCommandParams).rule.ranges);
                 errorMsg = this._localService.t('permission.dialog.setStyleErr');
                 break;
@@ -383,9 +383,9 @@ export class SheetPermissionInterceptorController extends RxDisposable {
         const filterRange = this._sheetsFilterService.getFilterModel(unitId, subUnitId)?.getRange();
         if (filterRange) {
             return this._permissionCheckWithRanges({
-                workbookTypes: [UnitAction.Edit],
-                rangeTypes: [UnitAction.View],
-                worksheetTypes: [UnitAction.Filter, UnitAction.Edit],
+                workbookTypes: [WorkbookEditablePermission],
+                rangeTypes: [RangeProtectionPermissionViewPoint],
+                worksheetTypes: [WorksheetFilterPermission, WorksheetEditPermission],
             }, [filterRange]);
         }
         return true;
@@ -405,44 +405,48 @@ export class SheetPermissionInterceptorController extends RxDisposable {
         }
     }
 
-    private _permissionCheckWithoutRange(permissionTypes: IPermissionTypesInRunTime) {
+    private _permissionCheckWithoutRange(permissionTypes: IPermissionTypes) {
         const workbook = this._univerInstanceService.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET)!;
         const worksheet = workbook?.getActiveSheet();
+        const unitId = workbook.getUnitId();
+        const subUnitId = worksheet.getSheetId();
         const selection = this._selectionManagerService.getLast();
         const row = selection?.primary?.actualRow ?? 0;
         const col = selection?.primary?.actualColumn ?? 0;
-        const { workbookTypes = [UnitAction.Edit], worksheetTypes, rangeTypes } = permissionTypes;
+        const { workbookTypes = [WorkbookEditablePermission], worksheetTypes, rangeTypes } = permissionTypes;
         if (workbookTypes) {
-            const workbookDisable = workbookTypes.some((type) => {
-                const actionString = changeEnumToString(type);
-                const workbookPermissionCheckFnName = `get${actionString}Permission`;
-                const workbookPermissionCheckFn = this._workbookPermissionService[workbookPermissionCheckFnName];
-                const workbookPermission = workbookPermissionCheckFn(workbook.getUnitId());
-                return workbookPermission === false;
+            const workbookDisable = workbookTypes.some((F) => {
+                const instance = new F(unitId);
+                const permission = this._permissionService.getPermissionPoint(instance.id)?.value ?? false;
+                return permission === false;
             });
             if (workbookDisable === true) {
                 return false;
             }
         }
         if (worksheetTypes) {
-            const worksheetDisable = worksheetTypes.some((type) => {
-                const actionString = changeEnumToString(type);
-                const worksheetPermissionCheckFnName = `get${actionString}Permission` as keyof WorksheetPermissionService;
-                const worksheetPermissionCheckFn = this._worksheetPermissionService[worksheetPermissionCheckFnName] as GetWorksheetPermission;
-                const worksheetPermission = worksheetPermissionCheckFn({
-                    unitId: workbook.getUnitId(),
-                    subUnitId: worksheet.getSheetId(),
-                });
-                return worksheetPermission === false;
+            const worksheetDisable = worksheetTypes.some((F) => {
+                const instance = new F(unitId, subUnitId);
+                const permission = this._permissionService.getPermissionPoint(instance.id)?.value ?? false;
+                return permission === false;
             });
             if (worksheetDisable === true) {
                 return false;
             }
         }
         if (rangeTypes) {
-            const rangeDisable = rangeTypes.some((rangeType) => {
-                const permission = (worksheet.getCell(row, col) as (ICellDataForSheetInterceptor & { selectionProtection: ICellPermission[] }))?.selectionProtection?.[0];
-                return permission?.[rangeType] === false;
+            const rangeDisable = rangeTypes.some((F) => {
+                const cellInfo = (worksheet.getCell(row, col) as (ICellDataForSheetInterceptor & { selectionProtection: ICellPermission[] }))?.selectionProtection?.[0];
+                if (!cellInfo.ruleId) {
+                    return false;
+                }
+                const permissionId = this._rangeProtectionRuleModel.getRule(unitId, subUnitId, cellInfo.ruleId)?.permissionId;
+                if (!permissionId) {
+                    return false;
+                }
+                const instance = new F(unitId, subUnitId, permissionId);
+                const permission = this._permissionService.getPermissionPoint(instance.id)?.value ?? false;
+                return permission === false;
             });
             if (rangeDisable === true) {
                 return false;
@@ -451,9 +455,15 @@ export class SheetPermissionInterceptorController extends RxDisposable {
         return true;
     }
 
-    private _permissionCheckWithRanges(permissionTypes: IPermissionTypesInRunTime, selectionRanges?: IRange[], unitId?: string, subUnitId?: string) {
+    private _permissionCheckWithRanges(permissionTypes: IPermissionTypes, selectionRanges?: IRange[], unitId?: string, subUnitId?: string) {
         const workbook = this._univerInstanceService.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET)!;
         const worksheet = workbook?.getActiveSheet();
+        if (!unitId) {
+            unitId = workbook.getUnitId();
+        }
+        if (!subUnitId) {
+            subUnitId = worksheet.getSheetId();
+        }
         const ranges = selectionRanges ?? this._selectionManagerService.getSelections()?.map((selection) => {
             return selection.range;
         });
@@ -462,29 +472,22 @@ export class SheetPermissionInterceptorController extends RxDisposable {
             return false;
         }
 
-        const { workbookTypes = [UnitAction.Edit], worksheetTypes, rangeTypes } = permissionTypes;
+        const { workbookTypes = [WorkbookEditablePermission], worksheetTypes, rangeTypes } = permissionTypes;
         if (workbookTypes) {
-            const workbookDisable = workbookTypes.some((type) => {
-                const actionType = changeEnumToString(type);
-                const workbookPermissionCheckFnName = `get${actionType}Permission`;
-                const workbookPermissionCheckFn = this._workbookPermissionService[workbookPermissionCheckFnName];
-                const workbookPermission = workbookPermissionCheckFn(workbook.getUnitId());
-                return workbookPermission === false;
+            const workbookDisable = workbookTypes.some((F) => {
+                const instance = new F(unitId);
+                const permission = this._permissionService.getPermissionPoint(instance.id)?.value ?? false;
+                return permission === false;
             });
             if (workbookDisable === true) {
                 return false;
             }
         }
         if (worksheetTypes) {
-            const worksheetDisable = worksheetTypes.some((type) => {
-                const actionType = changeEnumToString(type);
-                const worksheetPermissionCheckFnName = `get${actionType}Permission`;
-                const worksheetPermissionCheckFn = this._worksheetPermissionService[worksheetPermissionCheckFnName] as GetWorksheetPermission;
-                const worksheetPermission = worksheetPermissionCheckFn({
-                    unitId: workbook.getUnitId(),
-                    subUnitId: subUnitId ?? worksheet.getSheetId(),
-                });
-                return worksheetPermission === false;
+            const worksheetDisable = worksheetTypes.some((F) => {
+                const instance = new F(unitId, subUnitId);
+                const permission = this._permissionService.getPermissionPoint(instance.id)?.value ?? false;
+                return permission === false;
             });
             if (worksheetDisable === true) {
                 return false;
@@ -492,11 +495,20 @@ export class SheetPermissionInterceptorController extends RxDisposable {
         }
         if (rangeTypes) {
             const hasPermission = ranges?.every((range) => {
-                return rangeTypes.every((rangeType) => {
+                return rangeTypes.every((F) => {
                     for (let row = range.startRow; row <= range.endRow; row++) {
                         for (let col = range.startColumn; col <= range.endColumn; col++) {
-                            const permission = (worksheet.getCell(row, col) as (ICellDataForSheetInterceptor & { selectionProtection: ICellPermission[] }))?.selectionProtection?.[0];
-                            if (permission?.[rangeType] === false) {
+                            const cellInfo = (worksheet.getCell(row, col) as (ICellDataForSheetInterceptor & { selectionProtection: ICellPermission[] }))?.selectionProtection?.[0];
+                            if (!cellInfo.ruleId) {
+                                continue;
+                            }
+                            const permissionId = this._rangeProtectionRuleModel.getRule(unitId, subUnitId, cellInfo.ruleId)?.permissionId;
+                            if (!permissionId) {
+                                continue;
+                            }
+                            const instance = new F(unitId, subUnitId, permissionId);
+                            const permission = this._permissionService.getPermissionPoint(instance.id)?.value ?? false;
+                            if (permission === false) {
                                 return false;
                             }
                         }
@@ -513,21 +525,21 @@ export class SheetPermissionInterceptorController extends RxDisposable {
     private _permissionCheckByPaste(params: ISheetPasteParams) {
         if (params.value === 'special-paste-value' || params.value === 'special-paste-formula') {
             return this._permissionCheckWithRanges({
-                workbookTypes: [UnitAction.Edit],
-                rangeTypes: [UnitAction.Edit],
-                worksheetTypes: [UnitAction.SetCellValue, UnitAction.Edit],
+                workbookTypes: [WorkbookEditablePermission],
+                rangeTypes: [RangeProtectionPermissionEditPoint],
+                worksheetTypes: [WorksheetSetCellStylePermission, WorksheetEditPermission],
             });
         } else if (params.value === 'special-paste-format') {
             return this._permissionCheckWithRanges({
-                workbookTypes: [UnitAction.Edit],
-                rangeTypes: [UnitAction.Edit],
-                worksheetTypes: [UnitAction.SetCellStyle, UnitAction.Edit],
+                workbookTypes: [WorkbookEditablePermission],
+                rangeTypes: [RangeProtectionPermissionEditPoint],
+                worksheetTypes: [WorksheetSetCellStylePermission, WorksheetEditPermission],
             });
         } else {
             return this._permissionCheckWithRanges({
-                workbookTypes: [UnitAction.Edit],
-                rangeTypes: [UnitAction.Edit],
-                worksheetTypes: [UnitAction.SetCellValue, UnitAction.SetCellStyle, UnitAction.Edit],
+                workbookTypes: [WorkbookEditablePermission],
+                rangeTypes: [RangeProtectionPermissionEditPoint],
+                worksheetTypes: [WorksheetSetCellValuePermission, WorksheetSetCellStylePermission, WorksheetEditPermission],
             });
         }
     }
@@ -631,7 +643,7 @@ export class SheetPermissionInterceptorController extends RxDisposable {
         return true;
     }
 
-    private _permissionCheckBySetRangeValue(permissionTypes: IPermissionTypesInRunTime, setRangeValueParams: ISetRangeValuesCommandParams) {
+    private _permissionCheckBySetRangeValue(permissionTypes: IPermissionTypes, setRangeValueParams: ISetRangeValuesCommandParams) {
         let ranges: IRange[] = [];
         if (setRangeValueParams.range) {
             ranges = [setRangeValueParams.range];

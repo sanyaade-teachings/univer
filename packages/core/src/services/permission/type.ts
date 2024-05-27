@@ -37,12 +37,6 @@ export interface IPermissionTypes {
     workbookTypes?: WorkbookPermissionPointConstructor[];
 }
 
-export interface IPermissionTypesInRunTime {
-    rangeTypes: UnitAction[];
-    worksheetTypes: UnitAction[];
-    workbookTypes: UnitAction[];
-}
-
 export interface IPermissionPoint<V = boolean> {
     type: UnitObject;
     id: string;
