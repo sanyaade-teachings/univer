@@ -91,7 +91,7 @@ export const SheetPermissionDialog = () => {
                 if (subUnitPermissionTypeMap[c.action]) {
                     p[c.action] = {
                         text: localeService.t(`permission.panel.${subUnitPermissionTypeMap[c.action]}`),
-                        allowed: c.role === UnitRole.Owner,
+                        allowed: c.role !== UnitRole.Owner,
                     };
                 }
                 return p;

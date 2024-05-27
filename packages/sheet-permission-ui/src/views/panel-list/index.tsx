@@ -99,14 +99,13 @@ export const SheetPermissionPanelList = () => {
         });
 
         return isCurrentSheet ? subUnitRuleList : allPermissionRule;
-    }, [authzIoService, rangeProtectionRuleModel, workbook, worksheetProtectionModel]);
+    }, []);
 
     const [ruleList, setRuleList] = useState<IPermissionPoint[]>([]);
 
     useEffect(() => {
         const subscription = merge(
             rangeProtectionRuleModel.ruleChange$,
-            workbook.activeSheet$,
             worksheetProtectionModel.ruleChange$
         ).subscribe(async () => {
             const ruleList = await getRuleList(isCurrentSheet);
@@ -115,7 +114,17 @@ export const SheetPermissionPanelList = () => {
         return () => {
             subscription.unsubscribe();
         };
-    }, [getRuleList, isCurrentSheet, rangeProtectionRuleModel, workbook]);
+    }, [isCurrentSheet]);
+
+    useEffect(() => {
+        const subscribe = workbook.activeSheet$.subscribe(async () => {
+            const ruleList = await getRuleList(true);
+            setRuleList(ruleList);
+        });
+        return () => {
+            subscribe.unsubscribe();
+        };
+    }, []);
 
     const handleDelete = (rule: IRuleItem) => {
         const { unitId, subUnitId, unitType } = rule;
