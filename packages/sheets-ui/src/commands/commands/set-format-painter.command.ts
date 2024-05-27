@@ -42,7 +42,6 @@ import {
     SetRangeValuesMutation,
     SetRangeValuesUndoMutationFactory,
     SheetInterceptorService,
-    WorksheetPermissionService,
 
 } from '@univerjs/sheets';
 import type { IAccessor } from '@wendellhu/redi';
@@ -112,7 +111,6 @@ export const ApplyFormatPainterCommand: ICommand = {
         if (!target) return false;
 
         const { worksheet, unitId, subUnitId } = target;
-        const worksheetPermissionService = accessor.get(WorksheetPermissionService);
 
         const {
             styleValues: value,
