@@ -117,5 +117,5 @@ export interface IColumnStyleCfg {
     backgroundColor: string;
 }
 
-export type IAColumnCfgObj = IColumnStyleCfg & { text: string; backgroundColor: string };
-export type IAColumnCfg = string | IAColumnCfgObj;
+export type IAColumnCfgObj = IColumnStyleCfg & { text: string };
+export type IAColumnCfg = undefined | null | string | Partial<IAColumnCfgObj>;
