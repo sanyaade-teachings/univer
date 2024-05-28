@@ -15,7 +15,7 @@
  */
 
 import { UnitAction } from '@univerjs/protocol';
-import { WorkbookCommentPermission, WorkbookCopyPermission, WorkbookEditablePermission, WorkbookExportPermission, WorkbookManageCollaboratorPermission, WorkbookPrintPermission, WorkbookViewPermission } from '../permission-point';
+import { WorkbookCommentPermission, WorkbookCopyPermission, WorkbookCreateSheetPermission, WorkbookDeleteSheetPermission, WorkbookEditablePermission, WorkbookExportPermission, WorkbookHideSheetPermission, WorkbookManageCollaboratorPermission, WorkbookPrintPermission, WorkbookRenameSheetPermission, WorkbookViewPermission } from '../permission-point';
 
 export const getAllWorkbookPermissionPoint = () => [
     WorkbookEditablePermission,
@@ -25,6 +25,10 @@ export const getAllWorkbookPermissionPoint = () => [
     WorkbookCopyPermission,
     WorkbookExportPermission,
     WorkbookManageCollaboratorPermission,
+    WorkbookCreateSheetPermission,
+    WorkbookDeleteSheetPermission,
+    WorkbookRenameSheetPermission,
+    WorkbookHideSheetPermission,
 ];
 
 export const defaultWorkbookPermissionPoints = [
