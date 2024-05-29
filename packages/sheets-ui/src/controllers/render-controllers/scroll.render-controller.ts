@@ -377,6 +377,7 @@ export class SheetsScrollRenderController extends Disposable implements IRenderC
         return skeleton.getRowColumnSegment(bounds);
     }
 
+    // eslint-disable-next-line max-lines-per-function, complexity
     private _scrollToCell(row: number, column: number): boolean {
         const { rowHeightAccumulation, columnWidthAccumulation } = this._sheetSkeletonManagerService.getCurrent()?.skeleton ?? {};
 
