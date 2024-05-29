@@ -328,7 +328,7 @@ export class CanvasView extends RxDisposable {
         const { width: pageWidth = width, height: pageHeight = height } = thumbEngine;
 
         const thumbContext = thumbEngine.getCanvas().getContext();
-
+        if (!thumbContext) return;
         slide.renderToThumb(thumbContext, pageId, pageWidth / width, pageHeight / height);
     }
 

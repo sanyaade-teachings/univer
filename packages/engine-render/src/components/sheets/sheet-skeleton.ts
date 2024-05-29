@@ -608,9 +608,12 @@ export class SpreadsheetSkeleton extends Skeleton {
         return Math.max(rowHeader.width, widthByComputation);
     }
 
+    /**
+     * @param bounds The range of the visible area of the canvas
+     * @returns The range cell index of the canvas viewBound(cacheBound)
+     */
     getRowColumnSegment(bounds?: IViewportInfo) {
-        return this._getBounding(this._rowHeightAccumulation, this._columnWidthAccumulation, bounds?.cacheBound);
-        // return this._getBounding(this._rowHeightAccumulation, this._columnWidthAccumulation, bounds?.viewBound);
+        return this._getBounding(this._rowHeightAccumulation, this._columnWidthAccumulation, bounds?.cacheBound || bounds?.viewBound);
     }
 
     /**

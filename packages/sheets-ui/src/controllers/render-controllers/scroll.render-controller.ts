@@ -453,6 +453,12 @@ export class SheetsScrollRenderController extends Disposable implements IRenderC
         if (startSheetViewRow === undefined && startSheetViewColumn === undefined) return false;
 
         const { offsetX, offsetY } = this._scrollManagerService.getCurrentScroll() || {};
+        console.log('scrollToCell', {
+            sheetViewStartRow: startSheetViewRow,
+            sheetViewStartColumn: startSheetViewColumn,
+            offsetX: startSheetViewColumn === undefined ? offsetX : 0,
+            offsetY: startSheetViewRow === undefined ? offsetY : 0,
+        });
         return this._commandService.syncExecuteCommand(ScrollCommand.id, {
             sheetViewStartRow: startSheetViewRow,
             sheetViewStartColumn: startSheetViewColumn,

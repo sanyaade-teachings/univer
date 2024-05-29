@@ -633,7 +633,7 @@ export class Viewport {
         return this._scrollBar;
     }
 
-    // _scrollTo ---> _scroll ---> onScrollAfterObserver.notifyObservers ---> updateScroll
+    // viewport.scrollTo ---> viewport._scroll ---> viewport.onScrollAfterObserver.notifyObservers ---> updateScroll
     updateScroll(param: IScrollObserverParam) {
         // scrollvalue for scrollbar, when rows over 5000(big sheet), deltaScrollY always 0 when scrolling. Do not use this value to judge scrolling
         // this._deltaScrollX = this.scrollX - this._preScrollX;

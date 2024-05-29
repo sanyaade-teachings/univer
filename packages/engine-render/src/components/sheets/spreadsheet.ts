@@ -248,6 +248,7 @@ export class Spreadsheet extends SheetComponent {
         const bufferEdgeSizeY = bufferEdgeY * scaleY / window.devicePixelRatio;
 
         const cacheCtx = cacheCanvas.getContext();
+        if (!cacheCtx) return;
         cacheCtx.save();
         const { left, top, right, bottom } = viewPortPosition;
         const dw = right - left + rowHeaderWidth;
@@ -434,6 +435,7 @@ export class Spreadsheet extends SheetComponent {
 
         const pixelRatio = cacheCanvas.getPixelRatio();
         const cacheCtx = cacheCanvas.getContext();
+        if (!cacheCtx) return;
         cacheCtx.save();
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);

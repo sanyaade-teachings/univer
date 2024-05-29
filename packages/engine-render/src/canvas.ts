@@ -111,7 +111,7 @@ export class Canvas {
      * @returns {CanvasContext} context
      */
     getContext() {
-        return this._context!;
+        return this._context;
     }
 
     getPixelRatio() {
@@ -144,7 +144,7 @@ export class Canvas {
             canvsElement.style.height = `${this._height}px`;
         }
 
-        this.getContext().setTransform(this._pixelRatio, 0, 0, this._pixelRatio, 0, 0);
+        this.getContext()?.setTransform(this._pixelRatio, 0, 0, this._pixelRatio, 0, 0);
     }
 
     setPixelRatio(pixelRatio: number) {
@@ -166,7 +166,7 @@ export class Canvas {
 
     clear() {
         const ctx = this.getContext();
-        ctx.clearRect(0, 0, this._width * this._pixelRatio, this._height * this._pixelRatio);
+        ctx?.clearRect(0, 0, this._width * this._pixelRatio, this._height * this._pixelRatio);
     }
 
     /**
