@@ -25,6 +25,7 @@
     "scripts": {
         "prepare": "husky install",
         "pre-commit": "lint-staged",
+        "typedoc": "typedoc",
         "dev": "turbo dev:demo",
         "dev:e2e": "pnpm --filter univer-examples dev:e2e",
         "lint:types": "turbo lint:types",
@@ -72,6 +73,8 @@
         "release-it": "^17.3.0",
         "serve": "^14.2.3",
         "turbo": "^1.13.3",
+        "typedoc": "^0.25.13",
+        "typedoc-plugin-markdown": "^4.0.3",
         "typescript": "^5.4.5",
         "vitest": "^1.6.0"
     },
