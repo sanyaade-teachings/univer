@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-import type { ICommand, IRange } from '@univerjs/core';
+import type { ICommand, IRange, Nullable } from '@univerjs/core';
 import { CommandType, ICommandService, IUniverInstanceService, UniverInstanceType } from '@univerjs/core';
 
 import { getSheetCommandTarget } from '@univerjs/sheets';
 import { IRenderManagerService } from '@univerjs/engine-render';
+import type { IScrollManagerParam } from '../../services/scroll-manager.service';
 import { ScrollManagerService } from '../../services/scroll-manager.service';
 import { SetScrollOperation } from '../operations/scroll.operation';
 import { SheetsScrollRenderController } from '../../controllers/render-controllers/scroll.render-controller';
@@ -60,7 +61,7 @@ export const SetScrollRelativeCommand: ICommand<ISetScrollRelativeCommandParams>
             sheetId: subUnitId,
             sheetViewStartRow: sheetViewStartRow + ySplit,
             sheetViewStartColumn: sheetViewStartColumn + xSplit,
-            offsetX: currentOffsetX + offsetX, // currentOffsetX, offsetX 0, -179, offsetX may be negative or over max
+            offsetX: currentOffsetX + offsetX, // offsetX may be negative or over max
             offsetY: currentOffsetY + offsetY,
         });
     },
@@ -75,7 +76,7 @@ export interface IScrollCommandParams {
 
 /**
  * This command is used to manage the scroll position of the current view by specifying the cell index of the top left cell
- * Usually triggered by click scrollbar.
+ * Usually triggered by click scrollbar or moving selection range.
  */
 export const ScrollCommand: ICommand<IScrollCommandParams> = {
     id: 'sheet.command.scroll-view',
@@ -92,7 +93,7 @@ export const ScrollCommand: ICommand<IScrollCommandParams> = {
         if (!target) return false;
 
         const { workbook, worksheet } = target;
-        const currentScroll = scrollManagerService.getCurrentScrollInfo();
+        const currentScroll: Readonly<Nullable<IScrollManagerParam>> = scrollManagerService.getCurrentScrollInfo();
 
         if (!worksheet) {
             return false;
@@ -104,8 +105,6 @@ export const ScrollCommand: ICommand<IScrollCommandParams> = {
             sheetViewStartRow: currentRow,
             offsetX: currentOffsetX,
             offsetY: currentOffsetY,
-            scrollLeft,
-            scrollTop,
         } = currentScroll || {};
 
         const { xSplit, ySplit } = worksheet.getConfig().freeze;
@@ -118,8 +117,6 @@ export const ScrollCommand: ICommand<IScrollCommandParams> = {
             sheetViewStartColumn: sheetViewStartColumn ?? (currentColumn ?? 0) + xSplit,
             offsetX: offsetX ?? currentOffsetX,
             offsetY: offsetY ?? currentOffsetY,
-            scrollLeft,
-            scrollTop,
         });
     },
 };
@@ -162,8 +159,6 @@ export const ResetScrollCommand: ICommand = {
             sheetId: subUnitId,
             sheetViewStartRow: 0,
             sheetViewStartColumn: 0,
-            scrollLeft: 0,
-            scrollTop: 0,
         });
     },
 };

@@ -764,8 +764,8 @@ export class Viewport {
             this._drawScrollbar(mainCtx);
             mainCtx.restore();
         }
-
-        // this._scrollRendered();
+        // TODO @lumix, preScrollX is also handled by updateScroll(), this method is empty.
+        this._afterRender();
     }
 
     private _makeDefaultViewport() {
@@ -1232,11 +1232,11 @@ export class Viewport {
     }
 
     /**
-     * update pre value has handle in updateScroll()
+     * update pre scroll value has handled in updateScroll()
      */
-    private _scrollRendered() {
-        this._preScrollX = this.scrollX;
-        this._preScrollY = this.scrollY;
+    private _afterRender() {
+        // this._preScrollX = this.scrollX;
+        // this._preScrollY = this.scrollY;
     }
 
     private _triggerScrollStop(
@@ -1244,8 +1244,8 @@ export class Viewport {
             x: number;
             y: number;
         },
-        x?: number,
-        y?: number
+        scollBarX?: number,
+        scrollBarY?: number,
     ) {
         clearTimeout(this._scrollStopNum);
         this._scrollStopNum = setTimeout(() => {
@@ -1253,12 +1253,13 @@ export class Viewport {
                 viewport: this,
                 scrollX: this.scrollX,
                 scrollY: this.scrollY,
-                x,
-                y,
+                x: scollBarX,
+                y: scrollBarY,
                 viewportScrollX: scroll.x,
                 viewportScrollY: scroll.y,
                 limitX: this._scrollBar?.limitX,
                 limitY: this._scrollBar?.limitY,
+                isTrigger: false
             });
         }, 2);
     }
@@ -1319,27 +1320,27 @@ export class Viewport {
             this._scrollBar.makeDirty(true);
         }
 
-        const vpScroll = this.getViewportScrollByScroll();
-        this.viewportScrollX = vpScroll.x;
-        this.viewportScrollY = vpScroll.y;
+        const clampedViewportScroll = this.getViewportScrollByScroll();
+        this.viewportScrollX = clampedViewportScroll.x;
+        this.viewportScrollY = clampedViewportScroll.y;
 
         // scroll.render-controller@onScrollAfterObserver ---> setScrollInfo but no notify
         // calc startRow & offset by viewportScrollXY, then update scrollInfo
         // other viewports, rowHeader & colHeader depend on this notify
         this.onScrollAfterObserver.notifyObservers({
+            isTrigger,
             viewport: this,
-            scrollX: this.scrollX,
-            scrollY: this.scrollY,
             x,
             y,
-            viewportScrollX: vpScroll.x,
-            viewportScrollY: vpScroll.y,
+            scrollX: this.scrollX,
+            scrollY: this.scrollY,
+            viewportScrollX: clampedViewportScroll.x,
+            viewportScrollY: clampedViewportScroll.y,
             limitX: this._scrollBar?.limitX,
             limitY: this._scrollBar?.limitY,
-            isTrigger,
         });
 
-        this._triggerScrollStop(vpScroll, x, y);
+        this._triggerScrollStop(clampedViewportScroll, x, y);
 
         return limited;
     }

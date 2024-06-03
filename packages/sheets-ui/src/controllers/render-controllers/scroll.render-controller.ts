@@ -29,13 +29,12 @@ import { ScrollToCellOperation, SelectionManagerService } from '@univerjs/sheets
 import { Inject } from '@wendellhu/redi';
 
 import { ScrollCommand } from '../../commands/commands/set-scroll.command';
-// import { SHEET_VIEWPORT_KEY } from '../../common/keys';
-import type { IScrollManagerSearchParam } from '../../services/scroll-manager.service';
+import type { IExpandSelectionCommandParams } from '../../commands/commands/set-selection.command';
+import { ExpandSelectionCommand, MoveSelectionCommand, MoveSelectionEnterAndTabCommand } from '../../commands/commands/set-selection.command';
+import type { IScrollManagerParam, IScrollManagerSearchParam } from '../../services/scroll-manager.service';
 import { ScrollManagerService } from '../../services/scroll-manager.service';
 import type { ISheetSkeletonManagerParam } from '../../services/sheet-skeleton-manager.service';
 import { SheetSkeletonManagerService } from '../../services/sheet-skeleton-manager.service';
-import type { IExpandSelectionCommandParams } from '../../commands/commands/set-selection.command';
-import { ExpandSelectionCommand, MoveSelectionCommand, MoveSelectionEnterAndTabCommand } from '../../commands/commands/set-selection.command';
 import { getSheetObject } from '../utils/component-tools';
 
 const SHEET_NAVIGATION_COMMANDS = [MoveSelectionCommand.id, MoveSelectionEnterAndTabCommand.id];
@@ -168,7 +167,7 @@ export class SheetsScrollRenderController extends Disposable implements IRenderC
         const viewportMain = scene.getViewport(SHEET_VIEWPORT_KEY.VIEW_MAIN);
         this.disposeWithMe(
             toDisposable(
-                // set scrollInf, event triggered in viewport@_scrollToScrollbarPos
+                // set scrollInfo, event triggered in viewport@_scrollToScrollbarPos
                 viewportMain?.onScrollAfterObserver.add((param: IScrollObserverParam) => {
                     const skeleton = this._sheetSkeletonManagerService.getCurrent()?.skeleton;
                     if (skeleton == null || param.isTrigger === false) {
@@ -190,16 +189,15 @@ export class SheetsScrollRenderController extends Disposable implements IRenderC
 
                     // update scroll infos in scrollManagerService again!
                     // because raw param from scroll-command offsetX may be negative or over max value.
-                    const lastestScrollInfo = {
+                    // by the way, there is no need to set viewportScrollXY in lastestScrollInfo, _scrollManagerService._setScrollInfo would do this process.
+                    const lastestScrollInfo: IScrollManagerParam = {
                         sheetViewStartRow: row,
                         sheetViewStartColumn: column,
                         offsetX: columnOffset,
                         offsetY: rowOffset,
-                        scrollLeft: viewportScrollX,
-                        scrollTop: viewportScrollY,
                     };
                     this._scrollManagerService.setScrollInfoToCurrSheetWithoutNotify(lastestScrollInfo);
-                    this._scrollManagerService.setScrollInfoToSnapshot(lastestScrollInfo);
+                    this._scrollManagerService.setScrollInfoToSnapshot({...lastestScrollInfo, viewportScrollX, viewportScrollY});
                 })
             )
         );
@@ -248,15 +246,11 @@ export class SheetsScrollRenderController extends Disposable implements IRenderC
                     }
 
                     const scene = sheetObject.scene;
-
-                    // const { scaleX, scaleY } = sheetObject.scene.getAncestorScale();
-
                     const viewportMain = scene.getViewport(SHEET_VIEWPORT_KEY.VIEW_MAIN);
 
                     if (viewportMain == null) {
                         return;
                     }
-
                     if (param == null) {
                         viewportMain.scrollTo({
                             x: 0,
@@ -273,8 +267,7 @@ export class SheetsScrollRenderController extends Disposable implements IRenderC
                         sheetViewStartColumn
                     );
 
-                    // viewportScrollXByEvent is not same as viewportScrollX, by event may be negative, or over max
-                    // so, before
+                    // viewportScrollXByEvent is not same as viewportScrollX, by event, the value may be negative, or over max
                     const viewportScrollXByEvent = startX + offsetX;
                     const viewportScrollYByEvent = startY + offsetY;
 
@@ -298,8 +291,8 @@ export class SheetsScrollRenderController extends Disposable implements IRenderC
                 const viewportMain = scene.getViewport(SHEET_VIEWPORT_KEY.VIEW_MAIN);
                 const currScrollInfo = this._scrollManagerService.getScrollInfoByParam(param as unknown as IScrollManagerSearchParam);
                 if (viewportMain && currScrollInfo) {
-                    viewportMain.viewportScrollX = currScrollInfo.viewportScrollLeft || 0;
-                    viewportMain.viewportScrollY = currScrollInfo.viewportScrollTop || 0;
+                    viewportMain.viewportScrollX = currScrollInfo.viewportScrollX || 0;
+                    viewportMain.viewportScrollY = currScrollInfo.viewportScrollY || 0;
                 }
                 // this function would call setSearchParam
                 this._updateSceneSize(param as unknown as ISheetSkeletonManagerParam);
