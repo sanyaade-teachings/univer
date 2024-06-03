@@ -67,7 +67,8 @@ import { Inject, Injector } from '@wendellhu/redi';
 
 import { ScrollCommand } from '../../commands/commands/set-scroll.command';
 import { SetZoomRatioOperation } from '../../commands/operations/set-zoom-ratio.operation';
-import { SHEET_COMPONENT_HEADER_LAYER_INDEX, VIEWPORT_KEY } from '../../common/keys';
+import { SHEET_COMPONENT_HEADER_LAYER_INDEX } from '../../common/keys';
+
 import { ScrollManagerService } from '../../services/scroll-manager.service';
 import { SheetSkeletonManagerService } from '../../services/sheet-skeleton-manager.service';
 import { getCoordByOffset, getSheetObject } from '../utils/component-tools';
@@ -589,10 +590,10 @@ export class HeaderFreezeRenderController extends Disposable implements IRenderC
             if (freezeDirectionType === FREEZE_DIRECTION_TYPE.ROW) {
                 if (
                     !viewPortKey ||
-                    viewPortKey === VIEWPORT_KEY.VIEW_LEFT_TOP ||
-                    viewPortKey === VIEWPORT_KEY.VIEW_MAIN_LEFT_TOP ||
-                    viewPortKey === VIEWPORT_KEY.VIEW_MAIN_TOP ||
-                    viewPortKey === VIEWPORT_KEY.VIEW_ROW_TOP
+                    viewPortKey === SHEET_VIEWPORT_KEY.VIEW_LEFT_TOP ||
+                    viewPortKey === SHEET_VIEWPORT_KEY.VIEW_MAIN_LEFT_TOP ||
+                    viewPortKey === SHEET_VIEWPORT_KEY.VIEW_MAIN_TOP ||
+                    viewPortKey === SHEET_VIEWPORT_KEY.VIEW_ROW_TOP
                 ) {
                     ySplit = this._changeToRow - (oldFreeze.startRow - oldFreeze.ySplit);
                 } else {
@@ -605,10 +606,10 @@ export class HeaderFreezeRenderController extends Disposable implements IRenderC
             if (freezeDirectionType === FREEZE_DIRECTION_TYPE.COLUMN) {
                 if (
                     !viewPortKey ||
-                    viewPortKey === VIEWPORT_KEY.VIEW_LEFT_TOP ||
-                    viewPortKey === VIEWPORT_KEY.VIEW_MAIN_LEFT_TOP ||
-                    viewPortKey === VIEWPORT_KEY.VIEW_MAIN_LEFT ||
-                    viewPortKey === VIEWPORT_KEY.VIEW_COLUMN_LEFT
+                    viewPortKey === SHEET_VIEWPORT_KEY.VIEW_LEFT_TOP ||
+                    viewPortKey === SHEET_VIEWPORT_KEY.VIEW_MAIN_LEFT_TOP ||
+                    viewPortKey === SHEET_VIEWPORT_KEY.VIEW_MAIN_LEFT ||
+                    viewPortKey === SHEET_VIEWPORT_KEY.VIEW_COLUMN_LEFT
                 ) {
                     xSplit = this._changeToColumn - (oldFreeze.startColumn - oldFreeze.xSplit);
                 } else {
