@@ -210,10 +210,9 @@ export class SheetRenderController extends RxDisposable {
         const currentRender = this._renderManagerService.getRenderById(unitId);
         if (!currentRender) return;
         const { mainComponent: spreadsheet, scene } = currentRender;
-        // 现在 spreadsheet.markDirty 会调用 vport.markDirty
-        // 因为其他 controller 中存在 mainComponent?.makeDirty() 的调用, 不止是 sheet-render.controller 在标脏
+        // Because other controllers also call spreadsheet.makeDirty(), for example the cf.render-controller, it's not just the sheet-render.controller that is marking as dirty. Therefore, when calling spreadsheet.makeDirty(), viewport.markDirty needs to be called simultaneously to ensure consistency and proper rendering.
         if (spreadsheet) {
-            spreadsheet.makeDirty(); // refresh spreadsheet
+            spreadsheet.makeDirty();
         }
         scene.makeDirty();
         if (!command.params) return;
@@ -268,7 +267,7 @@ export class SheetRenderController extends RxDisposable {
         const sk = this._sheetSkeletonManagerService.getCurrent()?.skeleton!;
 
         const { rowHeightAccumulation, columnWidthAccumulation, rowHeaderWidth, columnHeaderHeight } = sk;
-        // rowHeightAccumulation 已经表示的是行底部的高度
+        // RowHeightAccumulation refers to the cumulative total of the bottom heights of successive rows.
         const dirtyBounds: IViewportInfos[] = [];
         for (const r of ranges) {
             const { startRow, endRow, startColumn, endColumn } = r;
