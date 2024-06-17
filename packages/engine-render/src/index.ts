@@ -50,3 +50,5 @@ export { ThinEngine } from './thin-engine';
 export { getCharSpaceApply, getNumberUnitValue } from './components/docs/layout/tools';
 export { type IChangeObserverConfig } from './scene.transformer';
 export { DEFAULT_PADDING_DATA } from './components/sheets/sheet-skeleton';
+export { lineIterator, spanIterator } from './components/docs/layout/tools';
+export { getOneTextSelectionRange } from './components/docs/text-selection/convert-cursor';

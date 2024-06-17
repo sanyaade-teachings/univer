@@ -138,11 +138,11 @@ export class MoveCursorController extends Disposable {
         const dataStreamLength = docDataModel.getBody()!.dataStream.length ?? Number.POSITIVE_INFINITY;
 
         if (direction === Direction.LEFT || direction === Direction.RIGHT) {
-            const preSpan = skeleton.findNodeByCharIndex(focusOffset - 1);
-            const curSpan = skeleton.findNodeByCharIndex(focusOffset)!;
+            const preGlyph = skeleton.findNodeByCharIndex(focusOffset - 1);
+            const curGlyph = skeleton.findNodeByCharIndex(focusOffset)!;
 
             focusOffset =
-                direction === Direction.RIGHT ? focusOffset + curSpan.count : focusOffset - (preSpan?.count ?? 0);
+                direction === Direction.RIGHT ? focusOffset + curGlyph.count : focusOffset - (preGlyph?.count ?? 0);
 
             focusOffset = Math.min(dataStreamLength - 2, Math.max(0, focusOffset));
 
@@ -194,6 +194,7 @@ export class MoveCursorController extends Disposable {
         }
     }
 
+    // eslint-disable-next-line max-lines-per-function
     private _handleMoveCursor(direction: Direction) {
         const activeRange = this._textSelectionManagerService.getActiveRange();
         const allRanges = this._textSelectionManagerService.getSelections();
@@ -370,6 +371,7 @@ export class MoveCursorController extends Disposable {
         return docSkeleton.findPositionByGlyph(nearestNode.glyph);
     }
 
+    // eslint-disable-next-line max-lines-per-function
     private _getNextOrPrevLine(glyph: IDocumentSkeletonGlyph, direction: boolean) {
         const divide = glyph.parent;
         if (divide == null) {
