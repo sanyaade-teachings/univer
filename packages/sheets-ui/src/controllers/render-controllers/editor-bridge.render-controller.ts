@@ -121,10 +121,10 @@ export class EditorBridgeRenderController extends RxDisposable implements IRende
             });
         });
 
-        spreadsheet.onPointerDownObserver.add(this._keepVisibleHideEditor.bind(this));
-        spreadsheetColumnHeader.onPointerDownObserver.add(this._keepVisibleHideEditor.bind(this));
-        spreadsheetLeftTopPlaceholder.onPointerDownObserver.add(this._keepVisibleHideEditor.bind(this));
-        spreadsheetRowHeader.onPointerDownObserver.add(this._keepVisibleHideEditor.bind(this));
+        spreadsheet.pointerDown$.subscribeEvent(this._keepVisibleHideEditor.bind(this));
+        spreadsheetColumnHeader.pointerDown$.subscribeEvent(this._keepVisibleHideEditor.bind(this));
+        spreadsheetLeftTopPlaceholder.pointerDown$.subscribeEvent(this._keepVisibleHideEditor.bind(this));
+        spreadsheetRowHeader.pointerDown$.subscribeEvent(this._keepVisibleHideEditor.bind(this));
     }
 
     // Move to another controller

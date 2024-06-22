@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import type { ICellData, ICommandInfo, IDocumentBody, Nullable, Observer } from '@univerjs/core';
+import type { ICellData, ICommandInfo, IDocumentBody, Nullable } from '@univerjs/core';
 import { CellValueType,
     DEFAULT_EMPTY_DOCUMENT_VALUE,
     Direction,
@@ -36,7 +36,7 @@ import { CellValueType,
 } from '@univerjs/core';
 import { MoveCursorOperation, MoveSelectionOperation } from '@univerjs/docs';
 import { LexerTreeBuilder, matchToken } from '@univerjs/engine-formula';
-import type { IDocumentLayoutObject, IMouseEvent, IPointerEvent } from '@univerjs/engine-render';
+import type { IDocumentLayoutObject } from '@univerjs/engine-render';
 import { DeviceInputEventType, IRenderManagerService } from '@univerjs/engine-render';
 import {
     SelectionManagerService,
@@ -74,8 +74,6 @@ enum CursorChange {
 
 @OnLifecycle(LifecycleStages.Rendered, EndEditController)
 export class EndEditController extends Disposable {
-    private _cursorChangeObservers: Nullable<Observer<IPointerEvent | IMouseEvent>>;
-
     private _editorVisiblePrevious = false;
 
     /**
@@ -100,19 +98,6 @@ export class EndEditController extends Disposable {
         this._initialize();
 
         this._commandExecutedListener();
-    }
-
-    override dispose(): void {
-        const editorObject = this._getEditorObject();
-
-        if (editorObject == null) {
-            return;
-        }
-
-        const { document: documentComponent } = editorObject;
-        documentComponent.onPointerDownObserver.remove(this._cursorChangeObservers);
-
-        super.dispose();
     }
 
     private _initialize() {
@@ -330,7 +315,7 @@ export class EndEditController extends Disposable {
 
         this.disposeWithMe(
             toDisposable(
-                documentComponent.onPointerDownObserver.add(() => {
+                documentComponent.pointerDown$.subscribeEvent(() => {
                     if (this._cursorChange === CursorChange.StartEditor) {
                         this._cursorChange = CursorChange.CursorChange;
                     }

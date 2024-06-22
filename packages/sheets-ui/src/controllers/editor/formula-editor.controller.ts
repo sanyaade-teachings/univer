@@ -199,7 +199,7 @@ export class FormulaEditorController extends RxDisposable {
 
         this.disposeWithMe(
             toDisposable(
-                documentComponent.onPointerDownObserver.add(() => {
+                documentComponent.pointerDown$.subscribeEvent(() => {
                     this._contextService.setContextValue(FOCUSING_FORMULA_EDITOR, true);
                     this._undoRedoService.clearUndoRedo(DOCS_FORMULA_BAR_EDITOR_UNIT_ID_KEY);
 

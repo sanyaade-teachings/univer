@@ -111,7 +111,7 @@ export class TextSelectionController extends Disposable {
 
         this.disposeWithMe(
             toDisposable(
-                document?.onPointerDownObserver.add((evt: IPointerEvent | IMouseEvent, state) => {
+                document?.pointerDown$.subscribeEvent((evt: IPointerEvent | IMouseEvent, state) => {
                     if (this._isEditorReadOnly(unitId)) {
                         return;
                     }
