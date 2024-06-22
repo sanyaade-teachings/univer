@@ -24,7 +24,7 @@ import { IConfigService,
 } from '@univerjs/core';
 import { DOCS_COMPONENT_BACKGROUND_LAYER_INDEX, DOCS_COMPONENT_DEFAULT_Z_INDEX, DOCS_COMPONENT_HEADER_LAYER_INDEX, DOCS_COMPONENT_MAIN_LAYER_INDEX, DOCS_VIEW_KEY, VIEWPORT_KEY } from '@univerjs/docs';
 import type { IRender, IWheelEvent, Scene } from '@univerjs/engine-render';
-import { DocBackground, Documents, EVENT_TYPE, IRenderManagerService, Layer, ScrollBar, Viewport } from '@univerjs/engine-render';
+import { DocBackground, Documents, IRenderManagerService, Layer, ScrollBar, Viewport } from '@univerjs/engine-render';
 import { IEditorService } from '@univerjs/ui';
 import { BehaviorSubject, takeUntil } from 'rxjs';
 
@@ -84,6 +84,7 @@ export class DocCanvasView extends RxDisposable {
         }
     }
 
+    // eslint-disable-next-line max-lines-per-function
     private _addNewRender() {
         const documentModel = this._currentDocumentModel;
 
@@ -112,7 +113,7 @@ export class DocCanvasView extends RxDisposable {
 
         scene.attachControl();
 
-        scene.on(EVENT_TYPE.wheel, (evt: unknown, state: EventState) => {
+        const wheelEventHandler = (evt: unknown, state: EventState) => {
             const e = evt as IWheelEvent;
 
             if (e.ctrlKey) {
@@ -135,7 +136,9 @@ export class DocCanvasView extends RxDisposable {
             } else {
                 viewMain.onMouseWheel(e, state);
             }
-        });
+        };
+        scene.onMouseWheel$.subscribeEvent(wheelEventHandler);
+        // scene.on(EVENT_TYPE.wheel, );
 
         const hasScroll = this._configService.getConfig('hasScroll') as Nullable<boolean>;
 

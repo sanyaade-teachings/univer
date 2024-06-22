@@ -87,7 +87,7 @@ export class ZoomController extends Disposable {
 
             this.disposeWithMe(
                 toDisposable(
-                    scene.onMouseWheelObserver.add((e: IWheelEvent) => {
+                    scene.onMouseWheel$.subscribeEvent((e: IWheelEvent) => {
                         if (!e.ctrlKey) {
                             return;
                         }

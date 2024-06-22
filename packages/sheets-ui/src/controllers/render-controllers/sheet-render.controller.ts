@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import type { ICommandInfo, IRange, Workbook, Worksheet } from '@univerjs/core';
+import type { EventState, ICommandInfo, IRange, Workbook, Worksheet } from '@univerjs/core';
 import { CommandType, ICommandService, Rectangle, RxDisposable } from '@univerjs/core';
 import type { IRenderContext, IRenderModule, IViewportInfos, IWheelEvent, Scene } from '@univerjs/engine-render';
 import {
@@ -407,10 +407,10 @@ export class SheetRenderController extends RxDisposable implements IRenderModule
         return scene.getViewports().filter((v) => ['viewMain', 'viewMainLeftTop', 'viewMainTop', 'viewMainLeft'].includes(v.viewportKey));
     }
 
-    // mouse scroll
+    // eslint-disable-next-line max-lines-per-function
     private _initMouseWheel(scene: Scene, viewMain: Viewport) {
         this.disposeWithMe(
-            scene.onMouseWheelObserver.add((evt: IWheelEvent, state) => {
+            scene.onMouseWheel$.subscribeEvent((evt: IWheelEvent, state: EventState) => {
                 if (evt.ctrlKey) {
                     return;
                 }
