@@ -253,6 +253,7 @@ export class TextSelectionRenderManager extends RxDisposable implements ITextSel
 
     private _document: Nullable<Documents>;
     private _scenePointerMoveSub: Nullable<Subscription>;
+    private _scenePointerUpSub: Nullable<Subscription>;
 
     constructor(@ILogService private readonly _logService: ILogService) {
         super();
@@ -543,11 +544,12 @@ export class TextSelectionRenderManager extends RxDisposable implements ITextSel
             preMoveOffsetX = moveOffsetX;
             preMoveOffsetY = moveOffsetY;
         });
-        // this._moveObservers.push();
 
-        this._upObservers.push(scene.onPointerUpObserver.add(() => {
+        this._scenePointerUpSub = scene.onPointerUp$.subscribeEvent(() => {
             // scene.onPointerMoveObserver.remove(this._moveObserver);
             // scene.onPointerUpObserver.remove(this._upObserver);
+            this._scenePointerMoveSub?.unsubscribe();
+            this._scenePointerUpSub?.unsubscribe();
 
             this._moveObservers.forEach((obs) => {
                 obs?.dispose();
@@ -578,7 +580,9 @@ export class TextSelectionRenderManager extends RxDisposable implements ITextSel
             this._scrollTimers = [];
 
             this._updateInputPosition();
-        }));
+        });
+        // this._moveObservers.push();
+        // this._upObservers.push();
     }
 
     removeAllTextRanges() {

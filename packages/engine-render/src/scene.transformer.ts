@@ -165,7 +165,7 @@ export class Transformer extends Disposable implements ITransformerConfig {
     private _viewportScrollY: number = -1;
 
     private _topScenePointerMoveSub: Nullable<Subscription>;
-    private _upObserver: Nullable<Observer<IPointerEvent | IMouseEvent>>;
+    private _topScenePointerUpSub: Nullable<Subscription>;
     private _cancelFocusSubscription: Nullable<Subscription>;
 
     private _transformerControlMap = new Map<string, Group>();
@@ -364,7 +364,7 @@ export class Transformer extends Disposable implements ITransformerConfig {
 
             this._moveBufferSkip = false;
 
-            const moveObserver = scene.onPointerMove$.subscribeEvent((moveEvt: IPointerEvent | IMouseEvent) => {
+            const scenePointerMoveSub = scene.onPointerMove$.subscribeEvent((moveEvt: IPointerEvent | IMouseEvent) => {
                 const { offsetX: moveOffsetX, offsetY: moveOffsetY } = moveEvt;
                 this._moving(moveOffsetX, moveOffsetY, scrollTimer, isCropper);
 
@@ -375,10 +375,10 @@ export class Transformer extends Disposable implements ITransformerConfig {
                 });
             });
 
-            const upObserver = scene.onPointerUpObserver.add(() => {
-                // moveObserver?.dispose();
-                moveObserver?.unsubscribe();
-                upObserver?.dispose();
+            const scenePointerUpSub = scene.onPointerUp$.subscribeEvent(() => {
+                // scenePointerMoveSub?.dispose();
+                scenePointerMoveSub?.unsubscribe();
+                scenePointerUpSub?.unsubscribe();
                 scene.enableEvent();
                 !isCropper && this.refreshControls();
                 scrollTimer.dispose();
@@ -424,13 +424,13 @@ export class Transformer extends Disposable implements ITransformerConfig {
 
     override dispose() {
         this._topScenePointerMoveSub?.dispose();
-        this._upObserver?.dispose();
+        this._topScenePointerUpSub?.dispose();
 
         this._cancelFocusSubscription?.unsubscribe();
         this._cancelFocusSubscription = null;
 
         this._topScenePointerMoveSub = null;
-        this._upObserver = null;
+        this._topScenePointerUpSub = null;
         this._cancelFocusSubscription = null;
 
         this._transformerControlMap.forEach((control) => {
@@ -874,6 +874,7 @@ export class Transformer extends Disposable implements ITransformerConfig {
         };
     }
 
+    // eslint-disable-next-line max-lines-per-function
     private _attachEventToAnchor(anchor: BaseObject, type = TransformerManagerType.RESIZE_LT, applyObject: BaseObject) {
         this.disposeWithMe(
             toDisposable(
@@ -926,10 +927,11 @@ export class Transformer extends Disposable implements ITransformerConfig {
                         topScene.setCursor(cursor);
                     });
 
-                    this._upObserver = topScene.onPointerUpObserver.add(() => {
+                    this._topScenePointerUpSub = topScene.onPointerUp$.subscribeEvent(() => {
                         // topScene.onPointerMove$.remove(this._moveObserver);
+                        // topScene.onPointerUp$.remove(this._topScenePointerUpSub);
                         this._topScenePointerMoveSub?.unsubscribe();
-                        topScene.onPointerUpObserver.remove(this._upObserver);
+                        this._topScenePointerUpSub?.unsubscribe();
                         topScene.enableEvent();
                         topScene.resetCursor();
                         scrollTimer.dispose();
@@ -1016,15 +1018,17 @@ export class Transformer extends Disposable implements ITransformerConfig {
                     });
 
                     this._moveBufferSkip = false;
-                    const moveObserver = topScene.onPointerMove$.subscribeEvent((moveEvt: IPointerEvent | IMouseEvent) => {
+                    const topScenePointerMoveSub = topScene.onPointerMove$.subscribeEvent((moveEvt: IPointerEvent | IMouseEvent) => {
                         const { offsetX: moveOffsetX, offsetY: moveOffsetY } = moveEvt;
                         this._rotateMoving(moveOffsetX, moveOffsetY, centerX, centerY, agentOrigin);
                         topScene.setCursor(cursor);
                     });
 
-                    const upObserver = topScene.onPointerUpObserver.add(() => {
-                        moveObserver?.dispose();
-                        upObserver?.dispose();
+                    const topScenePointerUpSub = topScene.onPointerUp$.subscribeEvent(() => {
+                        // topScenePointerMoveSub?.dispose();
+                        // topScenePointerUpSub?.dispose();
+                        topScenePointerMoveSub?.unsubscribe();
+                        topScenePointerUpSub?.unsubscribe();
                         topScene.enableEvent();
                         topScene.resetCursor();
                         this.refreshControls();
