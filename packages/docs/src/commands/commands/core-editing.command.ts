@@ -22,12 +22,13 @@ import type {
     ITextRange,
     UpdateDocsAttributeType,
 } from '@univerjs/core';
-import { CommandType, ICommandService, JSONX, TextX, TextXActionType } from '@univerjs/core';
+import { CommandType, ICommandService, IUniverInstanceService, JSONX, TextX, TextXActionType } from '@univerjs/core';
 import type { ITextRangeWithStyle } from '@univerjs/engine-render';
 
 import { getRetainAndDeleteFromReplace } from '../../basics/retain-delete-params';
 import type { IRichTextEditingMutationParams } from '../mutations/core-editing.mutation';
 import { RichTextEditingMutation } from '../mutations/core-editing.mutation';
+import { getRichTextEditPath } from '../util';
 
 export interface IInsertCommandParams {
     unitId: string;
@@ -49,6 +50,12 @@ export const InsertCommand: ICommand<IInsertCommandParams> = {
 
     handler: async (accessor, params: IInsertCommandParams) => {
         const commandService = accessor.get(ICommandService);
+        const univerInstanceService = accessor.get(IUniverInstanceService);
+        const docDataModel = univerInstanceService.getCurrentUniverDocInstance();
+
+        if (docDataModel == null) {
+            return false;
+        }
 
         const { range, segmentId, body, unitId, textRanges } = params;
         const { startOffset, collapsed } = range;
@@ -86,7 +93,9 @@ export const InsertCommand: ICommand<IInsertCommandParams> = {
             segmentId,
         });
 
-        doMutation.params.actions = jsonX.editOp(textX.serialize());
+        const path = getRichTextEditPath(docDataModel, segmentId);
+
+        doMutation.params.actions = jsonX.editOp(textX.serialize(), path);
 
         const result = commandService.syncExecuteCommand<
             IRichTextEditingMutationParams,
