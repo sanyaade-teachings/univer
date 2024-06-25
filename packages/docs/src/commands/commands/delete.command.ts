@@ -62,7 +62,7 @@ export const DeleteLeftCommand: ICommand = {
 
         const { startOffset, collapsed, segmentId, style } = activeRange;
 
-        const curGlyph = skeleton.findNodeByCharIndex(startOffset);
+        const curGlyph = skeleton.findNodeByCharIndex(startOffset, segmentId);
 
         // is in bullet list?
         const isBullet = hasListGlyph(curGlyph);
@@ -72,7 +72,7 @@ export const DeleteLeftCommand: ICommand = {
         let cursor = startOffset;
 
         // Get the deleted glyph. It maybe null or undefined when the curGlyph is first glyph in skeleton.
-        const preGlyph = skeleton.findNodeByCharIndex(startOffset - 1);
+        const preGlyph = skeleton.findNodeByCharIndex(startOffset - 1, segmentId);
 
         const isUpdateParagraph =
             isFirstGlyph(curGlyph) && preGlyph !== curGlyph && (isBullet === true || isIndent === true);
@@ -216,7 +216,7 @@ export const DeleteRightCommand: ICommand = {
 
         let result: boolean = false;
         if (collapsed === true) {
-            const needDeleteSpan = skeleton.findNodeByCharIndex(startOffset)!;
+            const needDeleteSpan = skeleton.findNodeByCharIndex(startOffset, segmentId)!;
 
             if (needDeleteSpan.content === '\r') {
                 result = await commandService.executeCommand(MergeTwoParagraphCommand.id, {

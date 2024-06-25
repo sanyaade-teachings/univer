@@ -22,7 +22,8 @@ import { DataStreamTreeNode } from './data-stream-tree-node';
 
 export enum DocumentEditArea {
     BODY = 'BODY',
-    HEADER_FOOTER = 'HEADER_FOOTER',
+    HEADER = 'HEADER',
+    FOOTER = 'FOOTER',
 }
 
 export class DocumentViewModel implements IDisposable {
