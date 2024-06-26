@@ -30,7 +30,7 @@ import type { ITextActiveRange } from '../../services/text-selection-manager.ser
 import { TextSelectionManagerService } from '../../services/text-selection-manager.service';
 import type { IRichTextEditingMutationParams } from '../mutations/core-editing.mutation';
 import { RichTextEditingMutation } from '../mutations/core-editing.mutation';
-import { getCommandSkeleton } from '../util';
+import { getCommandSkeleton, getRichTextEditPath } from '../util';
 import { CutContentCommand } from './clipboard.inner.command';
 import { DeleteCommand, DeleteDirection, UpdateCommand } from './core-editing.command';
 
@@ -47,7 +47,7 @@ export const DeleteLeftCommand: ICommand = {
         let result = true;
 
         const docDataModel = univerInstanceService.getCurrentUniverDocInstance();
-        if (!docDataModel) {
+        if (docDataModel == null) {
             return false;
         }
 
@@ -282,7 +282,7 @@ export const MergeTwoParagraphCommand: ICommand<IMergeTwoParagraphParams> = {
         }
 
         const docDataModel = univerInstanceService.getCurrentUniverDocInstance();
-        if (!docDataModel) {
+        if (docDataModel == null) {
             return false;
         }
 
@@ -353,7 +353,8 @@ export const MergeTwoParagraphCommand: ICommand<IMergeTwoParagraphParams> = {
             segmentId,
         });
 
-        doMutation.params.actions = jsonX.editOp(textX.serialize());
+        const path = getRichTextEditPath(docDataModel, segmentId);
+        doMutation.params.actions = jsonX.editOp(textX.serialize(), path);
 
         const result = commandService.syncExecuteCommand<
             IRichTextEditingMutationParams,
