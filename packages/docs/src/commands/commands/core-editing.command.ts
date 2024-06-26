@@ -45,9 +45,7 @@ export const EditorInsertTextCommandId = 'doc.command.insert-text';
  */
 export const InsertCommand: ICommand<IInsertCommandParams> = {
     id: EditorInsertTextCommandId,
-
     type: CommandType.COMMAND,
-
     handler: async (accessor, params: IInsertCommandParams) => {
         const commandService = accessor.get(ICommandService);
         const univerInstanceService = accessor.get(IUniverInstanceService);
@@ -94,7 +92,6 @@ export const InsertCommand: ICommand<IInsertCommandParams> = {
         });
 
         const path = getRichTextEditPath(docDataModel, segmentId);
-
         doMutation.params.actions = jsonX.editOp(textX.serialize(), path);
 
         const result = commandService.syncExecuteCommand<
@@ -125,9 +122,7 @@ export interface IDeleteCommandParams {
  */
 export const DeleteCommand: ICommand<IDeleteCommandParams> = {
     id: 'doc.command.delete-text',
-
     type: CommandType.COMMAND,
-
     handler: async (accessor, params: IDeleteCommandParams) => {
         const commandService = accessor.get(ICommandService);
         const univerInstanceService = accessor.get(IUniverInstanceService);
