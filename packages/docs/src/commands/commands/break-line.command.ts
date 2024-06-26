@@ -81,7 +81,7 @@ export const BreakLineCommand: ICommand = {
             },
         ];
 
-        const paragraphs = docDataModel.getBody()?.paragraphs ?? [];
+        const paragraphs = docDataModel.getSelfOrHeaderFooterModel(segmentId).getBody()?.paragraphs ?? [];
         const prevParagraph = paragraphs.find((p) => p.startIndex >= startOffset);
 
         // split paragraph into two.
