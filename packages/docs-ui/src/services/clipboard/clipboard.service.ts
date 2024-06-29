@@ -236,12 +236,19 @@ export class DocClipboardService extends Disposable implements IDocClipboardServ
 
     private _getDocumentBodyInRanges(): IDocumentBody[] {
         const ranges = this._textSelectionManagerService.getSelections();
-        const doc = this._univerInstanceService.getCurrentUniverDocInstance();
+        const activeRange = this._textSelectionManagerService.getActiveRange();
+        const docDataModel = this._univerInstanceService.getCurrentUniverDocInstance();
         const results: IDocumentBody[] = [];
 
-        if (ranges == null || !doc) {
+        if (ranges == null || docDataModel == null) {
             return results;
         }
+
+        if (activeRange == null) {
+            return results;
+        }
+
+        const { segmentId } = activeRange;
 
         for (const range of ranges) {
             const { startOffset, endOffset, collapsed } = range;
@@ -254,7 +261,7 @@ export class DocClipboardService extends Disposable implements IDocClipboardServ
                 continue;
             }
 
-            const docBody = doc.sliceBody(startOffset, endOffset);
+            const docBody = docDataModel.getSelfOrHeaderFooterModel(segmentId).sliceBody(startOffset, endOffset);
             if (docBody == null) {
                 continue;
             }
