@@ -311,6 +311,11 @@ export interface IHeaderAndFooterBase {
     evenAndOddHeaders?: BooleanNumber; // useEvenPageHeaderFooter,
 }
 
+export enum DocumentFlavor {
+    TRADITIONAL,
+    MODERN,
+}
+
 /**
  * Basics properties of doc style
  */
@@ -319,6 +324,8 @@ export interface IDocStyleBase extends IMargin {
     pageSize?: ISize; // pageSize
 
     pageOrient?: PageOrientType;
+
+    documentFlavor?: DocumentFlavor; // DocumentFlavor: TRADITIONAL, MODERN
 
     marginHeader?: number; // marginHeader
     marginFooter?: number; // marginFooter
