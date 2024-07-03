@@ -68,7 +68,7 @@ const SELECTION_TITLE_HIGHLIGHT_ALPHA = 0.3;
 /**
  * The main selection canvas component
  */
-export class SelectionShape extends Disposable {
+export class SelectionControl extends Disposable {
     private _leftControl!: Rect;
     private _rightControl!: Rect;
     private _topControl!: Rect;
@@ -86,11 +86,11 @@ export class SelectionShape extends Disposable {
     private _rowHeaderBackground!: Rect;
     private _rowHeaderBorder!: Rect;
     private _rowHeaderGroup!: Group;
-    private _rowHeaderHighlight!: Rect;
+    // private _rowHeaderHighlight!: Rect;
     private _columnHeaderBackground!: Rect;
     private _columnHeaderBorder!: Rect;
     private _columnHeaderGroup!: Group;
-    private _columnHeaderHighlight!: Rect;
+    // private _columnHeaderHighlight!: Rect;
 
     private _topLeftWidget!: Rect;
     private _topCenterWidget!: Rect;
@@ -112,7 +112,7 @@ export class SelectionShape extends Disposable {
 
     private _widgetRects: Rect[] = [];
 
-    private _dispose$ = new BehaviorSubject<SelectionShape>(this);
+    private _dispose$ = new BehaviorSubject<SelectionControl>(this);
     readonly dispose$ = this._dispose$.asObservable();
 
     readonly selectionMoving$ = new Subject<IRangeWithCoord>();
@@ -127,7 +127,7 @@ export class SelectionShape extends Disposable {
 
     private _defaultStyle!: ISelectionStyle;
 
-    private _currentStyle: Nullable<ISelectionStyle>;
+    // private _currentStyle: Nullable<ISelectionStyle>;
 
     private _isHelperSelection: boolean = true;
 
@@ -135,10 +135,13 @@ export class SelectionShape extends Disposable {
         private _scene: Scene,
         private _zIndex: number,
         private _isHeaderHighlight: boolean = true,
-        private readonly _themeService: ThemeService
+        private readonly _themeService: ThemeService,
+        private _currentStyle: Nullable<ISelectionStyle>
     ) {
         super();
         this._initialize();
+        // TODO @lumixraku
+        (window as any).sp = this;
     }
 
     get zIndex() {

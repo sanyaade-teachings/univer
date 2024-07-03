@@ -590,9 +590,9 @@ export class Scene extends ThinScene {
         return this.getActiveViewportByRelativeCoord(coord);
     }
 
-    getScrollXYByRelativeCoords(coord: Vector2, viewPort?: Viewport) {
+    getViewportScrollXYByCursorViewport(pos: Vector2, viewPort?: Viewport) {
         if (!viewPort) {
-            viewPort = this.getActiveViewportByRelativeCoord(coord);
+            viewPort = this.getActiveViewportByRelativeCoord(pos);
         }
         if (!viewPort) {
             return {
@@ -600,10 +600,10 @@ export class Scene extends ThinScene {
                 y: 0,
             };
         }
-        return this.getScrollXY(viewPort);
+        return this.getViewportScrollXY(viewPort);
     }
 
-    getScrollXY(viewPort: Viewport) {
+    getViewportScrollXY(viewPort: Viewport) {
         let x = 0;
         let y = 0;
         if (viewPort) {
